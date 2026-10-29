@@ -38,6 +38,15 @@
   button { font-family: inherit; }
   button:focus-visible, input:focus-visible { outline: 3px solid #fdba74; outline-offset: 2px; }
 
+<!-- DEDICATED LIFETIME PASS PAYMENT BANNER -->
+<div style="background:linear-gradient(135deg, #fef3c7, #fed7aa); border:2px solid #f59e0b; border-radius:18px; padding:20px; text-align:center; box-shadow:var(--shadow); margin-bottom:16px;">
+  <h3 style="color:#9a3412; font-size:1.35rem; margin-bottom:6px;">👑 Unlock Full Access (Levels 10 to 500)</h3>
+  <p style="color:#78716c; font-size:0.9rem; margin-bottom:14px;">Get complete lifetime access to all 500 levels, 12,500+ questions, and classmate duels.</p>
+  <button class="btn-play btn-gold" style="max-width:320px; margin:0 auto; font-size:1.05rem; padding:14px 20px;" onclick="openLifetimePassCheckout()">
+    💳 Buy Lifetime Pass via Stripe
+  </button>
+</div>
+
   /* LOGIN */
   .auth-wrapper { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; background: var(--grad); }
   .auth-card { background: #fff; border-radius: 24px; max-width: 460px; width: 100%; padding: 30px 26px; box-shadow: 0 24px 60px rgba(127, 29, 29, 0.35); text-align: center; }
@@ -5622,5 +5631,40 @@ window.selectAndStartLevel = function(lvl) {
   if (originalSelectAndStartLevel) {
     originalSelectAndStartLevel(lvl);
   }
+};
+// --- DIRECT STRIPE LIFETIME PASS & LEVEL GATE ---
+
+// 1. Direct Checkout Function
+function openLifetimePassCheckout() {
+  const stripePaymentUrl = "https://buy.stripe.com/9B6bJ35VD0PsfBS20LdAk00";
+  window.location.href = stripePaymentUrl;
+}
+
+// 2. Check for successful return from Stripe
+document.addEventListener("DOMContentLoaded", () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get("sub") === "success" || urlParams.get("success") === "true") {
+    hero.isPremium = true;
+    saveCurrentPupilProfile();
+    alert("🎉 Payment successful! Your Lifetime Pass for all 500 levels is now active.");
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+});
+
+// 3. Directly override the level selection map to hard-lock levels 10+
+window.selectAndStartLevel = function(lvl) {
+  if (lvl >= 10 && !hero.isPremium) {
+    // Show dedicated payment prompt
+    if (confirm(`🔒 Level ${lvl} requires the Lifetime Pass. Click OK to open the secure Stripe payment portal.`)) {
+      openLifetimePassCheckout();
+    }
+    return;
+  }
+  
+  // Normal level start for levels 1-9
+  hero.level = lvl;
+  saveCurrentPupilProfile();
+  updateHudAndMap();
+  startLevelMasteryTrial(lvl);
 };
 </script>
