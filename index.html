@@ -5589,4 +5589,38 @@ async function startStripeSubscriptionCheckout() {
     alert("⚠️ Could not connect to payment portal right now.");
   }
 }
+// --- STRIPE PAYMENT GATEWAY & LEVEL 10+ LOCK ---
+
+// 1. Direct Stripe Checkout Function using your Payment Link
+function startStripeSubscriptionCheckout() {
+  const stripePaymentUrl = "https://buy.stripe.com/9B6bJ35VD0PsfBS20LdAk00";
+  
+  // Instantly redirects the user to your secure Stripe hosted checkout page
+  window.location.href = stripePaymentUrl;
+}
+
+// 2. Enforce Level 10 to 500 Paywall Gate
+// (This intercepts clicks on levels 10 and above and prompts the payment modal if not premium)
+document.addEventListener("DOMContentLoaded", () => {
+  // Check if we just returned successfully from a Stripe payment
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get("sub") === "success" || urlParams.get("success") === "true") {
+    hero.isPremium = true;
+    saveCurrentPupilProfile();
+    alert("🎉 Payment successful! All 500 levels are now unlocked.");
+    window.history.replaceState({}, document.title, window.location.pathname); // Clean URL
+  }
+});
+
+// Override the level click handler to lock levels 10+
+const originalSelectAndStartLevel = window.selectAndStartLevel;
+window.selectAndStartLevel = function(lvl) {
+  if (lvl >= 10 && !hero.isPremium) {
+    openPaywallModal(); // Opens the Parent Report & Stripe Paywall
+    return;
+  }
+  if (originalSelectAndStartLevel) {
+    originalSelectAndStartLevel(lvl);
+  }
+};
 </script>
