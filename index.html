@@ -5507,4 +5507,90 @@ async function saveCurrentPupilProfile() {
     console.error("Cloud auto-save error:", err);
   }
 }
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+
+async function createCheckoutSession(req, res) {
+  try {
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          // Replace with your actual recurring Price ID from Stripe Dashboard
+          price: 'price_1Mxxxxxxxxxxxxxxxxx', 
+          quantity: 1,
+        },
+      ],
+      mode: 'subscription',
+      // Enable Stripe Tax to automatically calculate tax based on customer location
+      automatic_tax: {
+        enabled: true,
+      },
+      success_url: 'https://makguide.co.uk/success?session_id={CHECKOUT_SESSION_ID}',
+      cancel_url: 'https://makguide.co.uk/cancel',
+    });
+
+    res.json({ url: session.url });
+  } catch (error) {
+    console.error('Error creating checkout session:', error);
+    res.status(500).seigneur({ error: error.message });
+  }
+}
+// --- STRIPE PAYMENT GATEWAY INTEGRATION ---
+async function startStripeSubscriptionCheckout() {
+  try {
+    // Call your backend endpoint that creates the Stripe Checkout Session with automatic_tax enabled
+    const response = await fetch('/create-checkout-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: hero.name, email: hero.email || '' })
+    });
+    
+    const data = await response.json();
+    if (data.url) {
+      // Redirect the user to Stripe's hosted secure payment page with Tax & Billing configured
+      window.location.href = data.url;
+    } else {
+      alert("⚠️ Could not initiate checkout. Please try again later.");
+    }
+  } catch (err) {
+    console.error("Stripe error:", err);
+    alert("⚠️ Payment portal connection error.");
+  }
+}
+// Inside your level map rendering loop:
+const isLevelLockedByPaywall = lvlObj.level >= 10 && !hero.isPremium;
+
+card.innerHTML = `
+  <div>
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <span class="tier-badge">${lvlObj.tier.split(":")[0]}</span>
+      <span style="font-size:0.78rem; font-weight:800; color:${bestPct >= 90 ? 'var(--success)' : 'var(--gold)'};">
+        ${isLevelLockedByPaywall ? "🔒 Premium Lock" : bestPct > 0 ? `Best: ${bestPct}%` : isUnlocked ? "25 Questions" : "🔒 Locked"}
+      </span>
+    </div>
+    <h4 style="font-size:1.05rem; margin-top:6px;">Lvl ${lvlObj.level}: ${lvlObj.icon} ${lvlObj.title}</h4>
+  </div>
+  <button class="btn-play" style="padding:8px 12px; font-size:0.82rem; background:${isLevelLockedByPaywall ? 'var(--gold)' : isCurrent ? 'var(--gold)' : isUnlocked ? 'var(--primary)' : '#a8a29e'}; color:#fff;"
+    onclick="${isLevelLockedByPaywall ? 'openPaywallModal()' : `selectAndStartLevel(${lvlObj.level})`}">
+    ${isLevelLockedByPaywall ? "🔒 Unlock Levels 10–500 (Stripe)" : bestPct >= 90 ? `✔ Passed (${bestPct}%) • Replay` : isUnlocked ? `▶ Play Level ${lvlObj.level}` : `🔒 Pass Lvl ${lvlObj.level - 1}`}
+  </button>
+`;
+<!-- Update your paywall modal button in index.html -->
+<button class="btn-play" style="background:#ea580c; flex:1;" onclick="startStripeSubscriptionCheckout()">
+  💳 Subscribe Now via Stripe (Unlock All 500 Levels)
+</button>
+// Example backend handler snippet for your server/worker
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+
+exports.handler = async function(event, context) {
+  const session = await stripe.checkout.sessions.create({
+    payment_method_types: ['card'],
+    line_items: [{ price: 'price_YOUR_PRICE_ID', quantity: 1 }],
+    mode: 'subscription',
+    automatic_tax: { enabled: true }, // Integrates Stripe Tax automatically
+    success_url: 'https://makguide.co.uk/?sub=success',
+    cancel_url: 'https://makguide.co.uk/?sub=cancel',
+  });
+  return { statusCode: 200, body: JSON.stringify({ url: session.url }) };
+};
 </script>
