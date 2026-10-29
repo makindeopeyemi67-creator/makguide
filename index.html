@@ -753,8 +753,9 @@
     <p style="color:var(--text-muted); margin-top:6px;" id="chestStatusBanner"></p>
     <div class="whatsapp-preview" id="whatsappReportText"></div>
     <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:14px;">
-      <button class="btn-play" style="background:#ea580c; flex:1;" onclick="simulateParentUnlock()">
-        ✨ Activate Parent Pass (Unlock Chests!)
+      <!-- THIS IS THE STRIPE CHECKOUT BUTTON -->
+      <button class="btn-play" style="background:#ea580c; flex:1;" onclick="startStripeSubscriptionCheckout()">
+        💳 Subscribe Now via Stripe (Unlock Levels 10–500)
       </button>
       <button class="btn-play" style="background:#075e54; flex:1;" onclick="copyWhatsAppReport()">
         📋 Copy WhatsApp Report
@@ -762,7 +763,6 @@
     </div>
   </div>
 </div>
-
 <script>
 /* =====================================================================
    1. DETERMINISTIC SEEDED PRNG (`mulberry32`) FOR CLASSMATE DUELS
@@ -4546,29 +4546,6 @@ LESSONS.unshift(
   ["v", "Hidden 4-Letter Words & Missing 3-Letter Words", "Hidden Four-Letter|Missing Three-Letter", "For hidden words, scan across the gap between every pair of adjacent words using the end of one word and the start of the next. For missing 3-letter words in capitals, look at the context of the sentence to spot the full word first, then extract the 3 removed letters.", "'Emily went over t[he ro]ck' hides HERO across 'the rock'. And 'She shut the DOW' is WIN[DOW], so the missing 3-letter word is WIN.", "Check that the 3 or 4 letters are in the exact order they appear in the sentence."],
   ["n", "NVR Section 2 & Section 5: Like Shapes & 3-Letter Codes", "Most Like the Two|3-Letter Shape Codes", "In 'Most Like the Two Shapes', list every feature shared by BOTH left-hand shapes (such as shading, inner symbol count, or overlapping), and eliminate options that miss even one rule. In 3-letter shape codes, each letter position (1st, 2nd, 3rd) controls one visual feature.", "If two shapes share a solid arch, their 2nd letter is identical (e.g. KLI and ALP both have L in the middle).", "Compare two example codes that share a single letter to isolate what that letter means in seconds."]
 );
-
-/* --- 4. INSTANT 3-QUESTION TASTER BUTTON ON LOGIN SCREEN --- */
-window.addEventListener("DOMContentLoaded", () => {
-  const authForm = document.getElementById("authForm");
-  if (authForm && !document.getElementById("instantTasterBtn")) {
-    const tasterBtn = document.createElement("button");
-    tasterBtn.id = "instantTasterBtn";
-    tasterBtn.className = "btn-play";
-    tasterBtn.style.cssText = "margin-top:10px; background:#fff7ed; color:#c2410c; border:2px dashed #f97316;";
-    tasterBtn.textContent = "⚡ Try a 3-Question Taster First (No Login Needed)";
-    tasterBtn.onclick = () => {
-      hero.name = "Guest_Explorer";
-      hero.level = 1;
-      hero.highestUnlockedLevel = 1;
-      document.getElementById("authScreen").classList.add("hidden");
-      document.getElementById("mainHud").classList.remove("hidden");
-      document.getElementById("mainContainer").classList.remove("hidden");
-      updateHudAndMap();
-      startSubjectPractice(sample([RM, RE, RV, RN]));
-    };
-    authForm.appendChild(tasterBtn);
-  }
-});
 /* =====================================================================
    RECOVERY PATCH: RESTORE IREOLUWA'S PROGRESS & FIX LEADERBOARD
    ===================================================================== */
@@ -5593,4 +5570,23 @@ exports.handler = async function(event, context) {
   });
   return { statusCode: 200, body: JSON.stringify({ url: session.url }) };
 };
+// --- STRIPE CHECKOUT GATEWAY ---
+async function startStripeSubscriptionCheckout() {
+  try {
+    const response = await fetch('/create-checkout-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: hero.name })
+    });
+    const data = await response.json();
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      alert("⚠️ Payment portal is initializing. Please ensure your backend Stripe endpoint is linked.");
+    }
+  } catch (err) {
+    console.error("Stripe error:", err);
+    alert("⚠️ Could not connect to payment portal right now.");
+  }
+}
 </script>
