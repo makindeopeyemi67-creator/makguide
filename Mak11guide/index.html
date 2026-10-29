@@ -395,6 +395,16 @@
 <!-- =================================================================
      2. MAIN CONTAINER
      ================================================================= -->
+<!-- Global Classmate Leaderboard Section -->
+<div id="competeSection" class="app-section" style="display:none;">
+  <div style="background:var(--card-bg); border-radius:12px; padding:20px; border:1px solid var(--border);">
+    <h2 style="margin-top:0; color:var(--primary);">🏆 Global Classmate Leaderboard</h2>
+    <p style="color:var(--text-muted); font-size:0.9rem;">See how you rank against pupils across the UK racing through all 500 levels!</p>
+    
+    <!-- Live Leaderboard renders right here -->
+    <div id="liveLeaderboardContainer"></div>
+  </div>
+</div>
 <div id="mainContainer" class="container hidden">
 
   <!-- A. HUB SCREEN -->
@@ -5203,4 +5213,149 @@ window.applyPasswordReset = function() {
   document.getElementById("resetPwdBox").classList.add("hidden");
   loginSuccess(uname, db[uname].profile);
 };
+// --- 1. REBRANDING & TITLE UPDATES ---
+document.title = "MakGuide | 11+ Learning Academy";
+
+// --- 2. LIVE SUPABASE LEADERBOARD INTEGRATION ---
+async function fetchAndRenderLiveLeaderboard() {
+  const leaderboardContainer = document.getElementById("liveLeaderboardContainer");
+  if (!leaderboardContainer) return;
+
+  leaderboardContainer.innerHTML = `<div style="text-align:center; padding:20px; color:var(--text-muted);">🔄 Loading live leaderboard...</div>`;
+
+  if (!window.supabaseClient) {
+    leaderboardContainer.innerHTML = `<div style="text-align:center; padding:20px; color:var(--accent);">⚠️ Cloud sync not connected. Play online to appear on the global board!</div>`;
+    return;
+  }
+
+  try {
+    // Fetch top 10 pupils sorted by highest unlocked level and gold
+    const { data, error } = await window.supabaseClient
+      .from('pupils')
+      .select('username, highest_unlocked_level, gold, streak')
+      .order('highest_unlocked_level', { ascending: false })
+      .order('gold', { ascending: false })
+      .limit(10);
+
+    if (error) throw error;
+
+    if (!data || data.length === 0) {
+      leaderboardContainer.innerHTML = `<div style="text-align:center; padding:20px;">No pupils on the leaderboard yet. Be the first!</div>`;
+      return;
+    }
+
+    let html = `
+      <table style="width:100%; border-collapse:collapse; margin-top:10px; font-size:0.9rem;">
+        <thead>
+          <tr style="border-bottom:2px solid var(--border); text-align:left; color:var(--text-muted);">
+            <th style="padding:8px;">Rank</th>
+            <th style="padding:8px;">Pupil</th>
+            <th style="padding:8px;">Level</th>
+            <th style="padding:8px; text-align:right;">Gold 🪙</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    data.forEach((row, index) => {
+      const rankEmoji = index === 0 ? '👑' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`;
+      const isCurrent = row.username.toLowerCase() === (hero.username || '').toLowerCase();
+      
+      html += `
+        <tr style="border-bottom:1px solid var(--border); background:${isCurrent ? 'rgba(249, 115, 22, 0.08)' : 'transparent'};">
+          <td style="padding:8px; font-weight:bold;">${rankEmoji}</td>
+          <td style="padding:8px; font-weight:${isCurrent ? 'bold' : 'normal'};">${row.username} ${isCurrent ? '(You)' : ''}</td>
+          <td style="padding:8px; color:var(--primary); font-weight:bold;">Lvl ${row.highest_unlocked_level || 1}</td>
+          <td style="padding:8px; text-align:right; font-weight:bold;">${row.gold || 0}</td>
+        </tr>
+      `;
+    });
+
+    html += `</tbody></table>`;
+    leaderboardContainer.innerHTML = html;
+
+  } catch (err) {
+    console.error("Leaderboard fetch error:", err);
+    leaderboardContainer.innerHTML = `<div style="text-align:center; padding:20px; color:var(--accent);">Could not load live leaderboard. Please check connection.</div>`;
+  }
+}
+
+// Automatically trigger leaderboard load when the Compete / Leaderboard tab is opened
+document.addEventListener("DOMContentLoaded", () => {
+  // Hook into your tab switching or render it inside your Compete section view
+  const competeTabBtn = document.querySelector("[data-tab='compete']") || document.getElementById("competeTabBtn");
+  if (competeTabBtn) {
+    competeTabBtn.addEventListener("click", fetchAndRenderLiveLeaderboard);
+  }
+});
+// --- LIVE SUPABASE LEADERBOARD INTEGRATION ---
+    async function fetchAndRenderLiveLeaderboard() {
+      const leaderboardContainer = document.getElementById("liveLeaderboardContainer");
+      if (!leaderboardContainer) return;
+
+      leaderboardContainer.innerHTML = `<div style="text-align:center; padding:20px; color:var(--text-muted);">🔄 Loading live leaderboard...</div>`;
+
+      if (!window.supabaseClient) {
+        leaderboardContainer.innerHTML = `<div style="text-align:center; padding:20px; color:var(--accent);">⚠️ Cloud sync not connected. Play online to appear on the global board!</div>`;
+        return;
+      }
+
+      try {
+        const { data, error } = await window.supabaseClient
+          .from('pupils')
+          .select('username, highest_unlocked_level, gold, streak')
+          .order('highest_unlocked_level', { ascending: false })
+          .order('gold', { ascending: false })
+          .limit(10);
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+          leaderboardContainer.innerHTML = `<div style="text-align:center; padding:20px;">No pupils on the leaderboard yet. Be the first!</div>`;
+          return;
+        }
+
+        let html = `
+          <table style="width:100%; border-collapse:collapse; margin-top:10px; font-size:0.9rem;">
+            <thead>
+              <tr style="border-bottom:2px solid var(--border); text-align:left; color:var(--text-muted);">
+                <th style="padding:8px;">Rank</th>
+                <th style="padding:8px;">Pupil</th>
+                <th style="padding:8px;">Level</th>
+                <th style="padding:8px; text-align:right;">Gold 🪙</th>
+              </tr>
+            </thead>
+            <tbody>
+        `;
+
+        data.forEach((row, index) => {
+          const rankEmoji = index === 0 ? '👑' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`;
+          const isCurrent = row.username.toLowerCase() === (hero.username || '').toLowerCase();
+          
+          html += `
+            <tr style="border-bottom:1px solid var(--border); background:${isCurrent ? 'rgba(249, 115, 22, 0.08)' : 'transparent'};">
+              <td style="padding:8px; font-weight:bold;">${rankEmoji}</td>
+              <td style="padding:8px; font-weight:${isCurrent ? 'bold' : 'normal'};">${row.username} ${isCurrent ? '(You)' : ''}</td>
+              <td style="padding:8px; color:var(--primary); font-weight:bold;">Lvl ${row.highest_unlocked_level || 1}</td>
+              <td style="padding:8px; text-align:right; font-weight:bold;">${row.gold || 0}</td>
+            </tr>
+          `;
+        });
+
+        html += `</tbody></table>`;
+        leaderboardContainer.innerHTML = html;
+
+      } catch (err) {
+        console.error("Leaderboard fetch error:", err);
+        leaderboardContainer.innerHTML = `<div style="text-align:center; padding:20px; color:var(--accent);">Could not load live leaderboard. Please check connection.</div>`;
+      }
+    }
+
+    // Automatically trigger leaderboard load when clicked
+    document.addEventListener("DOMContentLoaded", () => {
+      const competeTabBtn = document.querySelector("[data-tab='compete']") || document.getElementById("competeTabBtn");
+      if (competeTabBtn) {
+        competeTabBtn.addEventListener("click", fetchAndRenderLiveLeaderboard);
+      }
+    });
 </script>
