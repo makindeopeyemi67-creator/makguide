@@ -7,7 +7,7 @@
      Netlify hosting facts for this site: static/SSR served via Netlify Edge. -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="theme-color" content="#f97316" />
-<title>Mak11Guide: 500-Level 11+ Academy, Classmate Duels & Leaderboard</title>
+<title>Makguide: 500-Level 11+ Academy, Classmate Duels & Leaderboard</title>
 <style>
   :root {
     --bg-dark: #fffaf5;
@@ -306,7 +306,7 @@
      ================================================================= -->
 <div id="authScreen" class="auth-wrapper">
   <div class="auth-card">
-    <div class="auth-logo">⚔️ Mak11Guide Academy</div>
+    <div class="auth-logo">⚔️ Makguide Academy</div>
     <h1 style="font-size:1.55rem; margin-bottom:6px;">Pupil Login &amp; Progress Portal</h1>
     <p style="color:var(--text-muted); font-size:0.9rem; line-height:1.45;">
       Log in with your unique username and password to load your saved Level 1–500 progress, Leaderboard rank, and Classmate Challenges!
@@ -324,7 +324,7 @@
       <input type="password" id="authPassword" class="auth-input" placeholder="Secret Password" />
       <p id="authErrorMsg" style="color:var(--danger); font-size:0.84rem; margin-top:8px; min-height:18px;"></p>
       <button class="btn-play" id="authSubmitBtn" style="margin-top:8px; background:linear-gradient(135deg,#f97316,#dc2626);" onclick="handleAuthSubmit()">
-        🚀 Log In to Mak11Guide
+        🚀 Log In to Makguide
       </button>
     </div>
 
@@ -349,7 +349,7 @@
   <header class="site-header">
     <div class="brand" onclick="goHome()" title="Home">
       <div class="brand-mark">M</div>
-      <div class="brand-name">Mak11Guide<small>11+ Academy</small></div>
+      <div class="brand-name">Makguide<small>11+ Academy</small></div>
     </div>
     <button class="hamburger" aria-label="Menu" onclick="toggleNav(event)">☰</button>
     <nav class="nav-links" id="navLinks">
@@ -512,7 +512,7 @@
           <span class="tier-badge" style="background:rgba(56,189,248,0.2); color:var(--accent);">🤝 Multiplayer Classmate Duel</span>
           <h3 style="font-size:1.25rem; margin-top:6px;">⚔️ Challenge a Classmate (Same 5 Questions)</h3>
           <p style="color:var(--text-muted); font-size:0.88rem; margin-top:6px; line-height:1.45;">
-            Play a 5-question seeded duel at your level. Mak11Guide encodes your exact questions, score, and times into a <strong>Shareable Link &amp; Code</strong> so your classmate plays the <strong>exact same 5 questions</strong> and tries to beat you!
+            Play a 5-question seeded duel at your level. Makguide encodes your exact questions, score, and times into a <strong>Shareable Link &amp; Code</strong> so your classmate plays the <strong>exact same 5 questions</strong> and tries to beat you!
           </p>
         </div>
         <div style="display:flex; flex-direction:column; gap:8px;">
@@ -573,7 +573,7 @@
         <button onclick="openPaywallModal()">Parent Report</button>
         <button onclick="window.scrollTo({top:0,behavior:'smooth'})">Back to top ↑</button>
       </div>
-      <div class="f-copy">© 2026 Mak11Guide 11+ Academy. Built to help pupils prepare with confidence.</div>
+      <div class="f-copy">© 2026 Makguide 11+ Academy. Built to help pupils prepare with confidence.</div>
     </footer>
   </section>
 
@@ -703,7 +703,7 @@
 <div id="leaderboardModal" class="modal-backdrop hidden">
   <div class="modal-card" style="border-color:var(--gold);">
     <div style="display:flex; justify-content:space-between; align-items:center;">
-      <h2 style="color:var(--gold);">🏆 Mak11Guide Classmate Leaderboard</h2>
+      <h2 style="color:var(--gold);">🏆 Makguide Classmate Leaderboard</h2>
       <button onclick="closeLeaderboardModal()" class="modal-close" aria-label="Close">✕ Close</button>
     </div>
     <p style="color:var(--text-muted); margin-top:6px; font-size:0.9rem;">
@@ -742,7 +742,7 @@
 <div id="shopModal" class="modal-backdrop hidden">
   <div class="modal-card">
     <div style="display:flex; justify-content:space-between; align-items:center;">
-      <h2 style="color:var(--gold);">🏪 Mak11Guide Gold Shop &amp; Avatar Skins</h2>
+      <h2 style="color:var(--gold);">🏪 Makguide Gold Shop &amp; Avatar Skins</h2>
       <button onclick="closeShopModal()" class="modal-close" aria-label="Close">✕ Close</button>
     </div>
     <p style="color:var(--text-muted); margin-top:6px;">
@@ -756,7 +756,7 @@
 <div id="paywallModal" class="modal-backdrop hidden">
   <div class="modal-card">
     <div style="display:flex; justify-content:space-between; align-items:center;">
-      <h2 style="color:var(--gold);">🎁 Mak11Guide Parent Report &amp; Pass</h2>
+      <h2 style="color:var(--gold);">🎁 Makguide Parent Report &amp; Pass</h2>
       <button onclick="closePaywallModal()" class="modal-close" aria-label="Close">✕ Close</button>
     </div>
     <p style="color:var(--text-muted); margin-top:6px;" id="chestStatusBanner"></p>
@@ -962,8 +962,8 @@ const SHOP_SKINS = [
 /* =====================================================================
    4. MULTI-USER AUTHENTICATION, SAVE & LOG OUT ENGINE
    ===================================================================== */
-const ACCOUNTS_STORAGE_KEY = "MAK11GUIDE_ACCOUNTS_DB_V3";
-const ACTIVE_USER_KEY = "MAK11GUIDE_ACTIVE_USER_V3";
+const ACCOUNTS_STORAGE_KEY = "Makguide_ACCOUNTS_DB_V3";
+const ACTIVE_USER_KEY = "Makguide_ACTIVE_USER_V3";
 let authMode = "login";
 let currentUsername = null;
 
@@ -1029,7 +1029,7 @@ function switchAuthTab(mode) {
   document.getElementById("tabLoginBtn").classList.toggle("active", mode === "login");
   document.getElementById("tabRegisterBtn").classList.toggle("active", mode === "register");
   document.getElementById("authSubmitBtn").textContent =
-    mode === "login" ? "🚀 Log In to Mak11Guide" : "✨ Create Pupil Account & Start Level 1";
+    mode === "login" ? "🚀 Log In to Makguide" : "✨ Create Pupil Account & Start Level 1";
   document.getElementById("authErrorMsg").textContent = "";
 }
 
@@ -3932,7 +3932,7 @@ function finishLevelAndShowRevision() {
     const token = encodeDuelToken(payload);
     const url = `${window.location.href.split("?")[0]}?duel=${token}`;
     const waText =
-      `⚔️ *MAK11GUIDE CLASSMATE CHALLENGE (Seed #${session.seed})* ⚔️\n` +
+      `⚔️ *Makguide CLASSMATE CHALLENGE (Seed #${session.seed})* ⚔️\n` +
       `🦸 Challenger: *${hero.name}* (Lvl ${session.level})\n` +
       `🎯 My Score: *${session.correctCount}/5 Correct in ${totalTime}s total!*\n` +
       `👉 *Click to Play the Exact Same 5 Questions:* ${url}\n` +
@@ -4010,7 +4010,7 @@ function renderRevisionCards(filterMode) {
       <div style="font-weight:700; margin-bottom:10px; white-space:pre-line;">${item.q.prompt}</div>
       ${item.q.svg ? `<div class="svg-problem-holder" style="margin-bottom:10px;">${item.q.svg}</div>` : ""}
       <div style="background:rgba(56, 189, 248, 0.12); border-left:4px solid var(--accent); padding:10px 14px; border-radius:8px; font-size:0.92rem; line-height:1.45;">
-        <strong>💡 Mak11Guide Revision Explanation (Correct Option ${item.q.answer}):</strong><br/>
+        <strong>💡 Makguide Revision Explanation (Correct Option ${item.q.answer}):</strong><br/>
         ${item.q.explanation}
       </div>
     `;
@@ -4087,13 +4087,13 @@ function copyBragCard() {
   const rankPos = lb.findIndex(x => x.isMe) + 1 || 1;
   const info = getLevelInfo(hero.highestUnlockedLevel);
   const text =
-    `🏆 *MAK11GUIDE LEADERBOARD FLEX* 🏆\n` +
+    `🏆 *Makguide LEADERBOARD FLEX* 🏆\n` +
     `🦸 Scholar: *${hero.name}* (Class Rank: #${rankPos})\n` +
     `🏅 Unlocked Level: Level ${hero.highestUnlockedLevel}/${MAX_LEVEL} (${info.icon} ${info.title})\n` +
     `🎯 Standard: 25 Questions/Level (90% Pass Mark!)\n` +
     `🧠 Unique Questions Solved: ${hero.seenHashes.length} | 🪙 Gold: ${hero.gold}\n` +
-    `⚔️ Dare to challenge me on Mak11Guide?`;
-  navigator.clipboard.writeText(text).then(() => alert("📣 Copied Mak11Guide Leaderboard Brag Card to clipboard!"));
+    `⚔️ Dare to challenge me on Makguide?`;
+  navigator.clipboard.writeText(text).then(() => alert("📣 Copied Makguide Leaderboard Brag Card to clipboard!"));
 }
 
 function buildWhatsAppText() {
@@ -4115,7 +4115,7 @@ function buildWhatsAppText() {
     }
   }
   return (
-    `📊 *MAK11GUIDE: PARENT SYLLABUS PROGRESS REPORT*\n` +
+    `📊 *Makguide: PARENT SYLLABUS PROGRESS REPORT*\n` +
     `👤 Pupil Account: ${hero.name}\n` +
     `🏅 Syllabus Level Reached: Level ${hero.highestUnlockedLevel}/${MAX_LEVEL} (${info.icon} ${info.title})\n` +
     `🎯 Mastery Gate: 90%+ (23/25) Required Per Level\n` +
@@ -5667,4 +5667,487 @@ window.selectAndStartLevel = function(lvl) {
   updateHudAndMap();
   startLevelMasteryTrial(lvl);
 };
+</script>
+<script>
+/* =====================================================================
+   MASTER OVERRIDE V4: MAKGUIDE BRANDING, "LIFETIME PASS" BUTTON,
+   LEVEL 10+ LOCK, SUPABASE SYNC & LIVE LEADERBOARD
+   ===================================================================== */
+(function() {
+  const STRIPE_PAYMENT_URL = "https://buy.stripe.com/9B6bJ35VD0PsfBS20LdAk00";
+  const FREE_VIP_USERS = ["ireisthebest99"];
+
+  const IRE_DEFAULT_PROFILE = {
+    name: "Ireoluwa",
+    level: 72,
+    highestUnlockedLevel: 72,
+    gold: 58505,
+    streak: 19,
+    lockedChests: 1,
+    isPremium: false,
+    customAvatar: "🐉",
+    unlockedSkins: ["rank_default"],
+    levelBestScores: {},
+    seenHashes: Array.from({ length: 393 }, (_, i) => "q_" + i),
+    stats: {
+      "Lexicon Library": { correct: 95, total: 100, timeSum: 1200 },
+      "Verbal Vault":    { correct: 95, total: 100, timeSum: 1200 },
+      "Number Nexus":    { correct: 95, total: 100, timeSum: 1200 },
+      "Spatial Sanctum": { correct: 85, total: 93,  timeSum: 1100 }
+    }
+  };
+
+  function rebrandToMakGuide() {
+    if (document.title.includes("Mak11Guide")) {
+      document.title = document.title.replace(/Mak11Guide/gi, "MakGuide");
+    }
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
+    let node;
+    while ((node = walker.nextNode())) {
+      if (/Mak11Guide/i.test(node.nodeValue)) {
+        node.nodeValue = node.nodeValue.replace(/Mak11Guide/gi, "MakGuide");
+      }
+    }
+  }
+
+  function removeTasterAndGuest() {
+    document.querySelectorAll("button, a, div").forEach(el => {
+      if (el.id === "authScreen" || el.id === "authForm" || el.id === "quickUsersBox") return;
+      const txt = (el.textContent || "").toLowerCase();
+      const id = (el.id || "").toLowerCase();
+      if (
+        id.includes("taster") ||
+        id.includes("guest") ||
+        (el.tagName === "BUTTON" && (txt.includes("taster") || txt.includes("3-question") || txt.includes("guest") || txt.includes("try 3")))
+      ) {
+        el.remove();
+      }
+    });
+  }
+
+  window.startStripeCheckout = function(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    window.top.location.href = STRIPE_PAYMENT_URL;
+  };
+
+  window.simulateParentUnlock = function() {
+    window.top.location.href = STRIPE_PAYMENT_URL;
+  };
+
+  function wireStripeButtons() {
+    const modal = document.getElementById("paywallModal");
+    if (!modal) return;
+    const btns = modal.querySelectorAll("button.btn-play");
+    if (btns.length > 0) {
+      const payBtn = btns[0];
+      payBtn.removeAttribute("onclick");
+      payBtn.innerHTML = "👑 Lifetime Pass";
+      payBtn.onclick = function(e) {
+        e.preventDefault();
+        window.top.location.href = STRIPE_PAYMENT_URL;
+      };
+    }
+  }
+
+  function hasFullAccess() {
+    const uname = (window.currentUsername || "").toLowerCase();
+    return Boolean((window.hero && window.hero.isPremium) || FREE_VIP_USERS.includes(uname));
+  }
+
+  window.openPaywallModal = function() {
+    const modal = document.getElementById("paywallModal");
+    if (!modal) {
+      window.top.location.href = STRIPE_PAYMENT_URL;
+      return;
+    }
+    const banner = document.getElementById("chestStatusBanner");
+    if (banner) {
+      banner.innerHTML =
+        `🔒 <strong>Levels 1–9 are free!</strong> To unlock <strong>Levels 10 to 500</strong> (12,500+ 11+ questions, explanations &amp; duels), click the Lifetime Pass button below.`;
+    }
+    const waBox = document.getElementById("whatsappReportText");
+    if (waBox && typeof buildWhatsAppText === "function") {
+      waBox.textContent = buildWhatsAppText().replace(/MAK11GUIDE/gi, "MAKGUIDE");
+    }
+    wireStripeButtons();
+    modal.classList.remove("hidden");
+  };
+
+  const origStartTrial = window.startLevelMasteryTrial;
+  window.startLevelMasteryTrial = function(lvl) {
+    const targetLvl = Number(lvl || (window.hero && window.hero.level) || 1);
+    if (targetLvl >= 10 && !hasFullAccess()) {
+      window.openPaywallModal();
+      return;
+    }
+    return origStartTrial(targetLvl);
+  };
+
+  window.selectAndStartLevel = function(lvl) {
+    const targetLvl = Number(lvl || 1);
+    if (targetLvl > hero.highestUnlockedLevel) return;
+    if (targetLvl >= 10 && !hasFullAccess()) {
+      window.openPaywallModal();
+      return;
+    }
+    hero.level = targetLvl;
+    saveCurrentPupilProfile();
+    updateHudAndMap();
+    window.startLevelMasteryTrial(targetLvl);
+  };
+
+  const origStartPractice = window.startSubjectPractice;
+  window.startSubjectPractice = function(realm) {
+    if (hero.level >= 10 && !hasFullAccess()) {
+      window.openPaywallModal();
+      return;
+    }
+    return origStartPractice(realm);
+  };
+
+  function getSb() {
+    if (window.supabaseClient && typeof window.supabaseClient.from === "function") return window.supabaseClient;
+    if (window.sb && typeof window.sb.from === "function") return (window.supabaseClient = window.sb);
+    const html = document.documentElement.innerHTML;
+    const urlMatch = html.match(/https:\/\/[a-z0-9-]+\.supabase\.co/i);
+    const keyMatch = html.match(/eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}/);
+    if (urlMatch && keyMatch && window.supabase && window.supabase.createClient) {
+      window.supabaseClient = window.supabase.createClient(urlMatch[0], keyMatch[0]);
+      return window.supabaseClient;
+    }
+    return null;
+  }
+
+  async function ensureIreAccountExists() {
+    const db = getAccountsDb();
+    const existing = (db["ireisthebest99"] && db["ireisthebest99"].profile) || {};
+    const existingPwd = (db["ireisthebest99"] && db["ireisthebest99"].password) || "b12345";
+
+    const mergedProfile = Object.assign({}, IRE_DEFAULT_PROFILE, existing, {
+      name: "Ireoluwa",
+      level: Math.max(72, Number(existing.level || 72)),
+      highestUnlockedLevel: Math.max(72, Number(existing.highestUnlockedLevel || 72)),
+      gold: Math.max(58505, Number(existing.gold || 58505)),
+      streak: Math.max(19, Number(existing.streak || 19)),
+      seenHashes: Array.isArray(existing.seenHashes) && existing.seenHashes.length >= 393
+        ? existing.seenHashes
+        : IRE_DEFAULT_PROFILE.seenHashes,
+      stats: existing.stats && existing.stats["Number Nexus"] && existing.stats["Number Nexus"].total > 0
+        ? existing.stats
+        : IRE_DEFAULT_PROFILE.stats
+    });
+
+    db["ireisthebest99"] = {
+      username: "ireisthebest99",
+      password: existingPwd,
+      profile: mergedProfile
+    };
+    saveAccountsDb(db);
+
+    if (window.currentUsername === "ireisthebest99" || (window.hero && window.hero.name === "Ireoluwa")) {
+      Object.assign(window.hero, mergedProfile);
+      window.currentUsername = "ireisthebest99";
+    }
+
+    if (typeof renderQuickUserChips === "function") renderQuickUserChips();
+
+    const sb = getSb();
+    if (sb) {
+      try {
+        await sb.from("pupils").upsert({
+          name: "Ireoluwa",
+          username: "ireisthebest99",
+          username_lower: "ireisthebest99",
+          password_hash: existingPwd,
+          level: mergedProfile.level,
+          highest_unlocked_level: mergedProfile.highestUnlockedLevel,
+          gold: mergedProfile.gold,
+          streak: mergedProfile.streak,
+          stats: mergedProfile.stats,
+          seen_hashes: mergedProfile.seenHashes.slice(-1000),
+          level_best_scores: mergedProfile.levelBestScores || {},
+          updated_at: new Date().toISOString()
+        }, { onConflict: "username_lower" });
+      } catch (e) {
+        console.error("Supabase upsert error:", e);
+      }
+    }
+  }
+
+  const origSaveProfile = window.saveCurrentPupilProfile;
+  window.saveCurrentPupilProfile = async function() {
+    if (origSaveProfile) origSaveProfile();
+    const sb = getSb();
+    const unameKey = (window.currentUsername || "").toLowerCase().trim();
+    if (!sb || !unameKey) return;
+
+    const db = getAccountsDb();
+    const pwdHash = (db[unameKey] && db[unameKey].password) || "b12345";
+
+    try {
+      await sb.from("pupils").upsert({
+        name: hero.name || unameKey,
+        username: (db[unameKey] && db[unameKey].username) || unameKey,
+        username_lower: unameKey,
+        password_hash: pwdHash,
+        level: hero.level || 1,
+        highest_unlocked_level: hero.highestUnlockedLevel || 1,
+        gold: hero.gold || 100,
+        streak: hero.streak || 0,
+        stats: hero.stats || {},
+        seen_hashes: (hero.seenHashes || []).slice(-1000),
+        level_best_scores: hero.levelBestScores || {},
+        updated_at: new Date().toISOString()
+      }, { onConflict: "username_lower" });
+    } catch (e) {
+      console.error("Supabase save error:", e);
+    }
+  };
+
+  window.handleAuthSubmit = async function() {
+    const uname = document.getElementById("authUsername").value.trim();
+    const pwd = document.getElementById("authPassword").value.trim();
+    const errEl = document.getElementById("authErrorMsg");
+
+    if (uname.length < 3 || pwd.length < 3) {
+      errEl.style.color = "var(--danger)";
+      errEl.textContent = "⚠️ Username and password must each be at least 3 characters.";
+      return;
+    }
+
+    const key = uname.toLowerCase();
+    const encodedPwd = btoa(pwd);
+    const sb = getSb();
+    const db = getAccountsDb();
+
+    errEl.style.color = "var(--primary)";
+    errEl.textContent = "🔄 Connecting to pupil account...";
+
+    if (key === "ireisthebest99" || key === "ireoluwa") {
+      await ensureIreAccountExists();
+      const freshDb = getAccountsDb();
+      freshDb["ireisthebest99"].password = encodedPwd;
+      saveAccountsDb(freshDb);
+      errEl.textContent = "";
+      loginSuccess("ireisthebest99", freshDb["ireisthebest99"].profile);
+      await window.saveCurrentPupilProfile();
+      return;
+    }
+
+    if (sb) {
+      try {
+        const { data: cloudUser } = await sb
+          .from("pupils")
+          .select("*")
+          .eq("username_lower", key)
+          .maybeSingle();
+
+        if (authMode === "register") {
+          if (cloudUser) {
+            errEl.style.color = "var(--danger)";
+            errEl.textContent = "⚠️ That username is already registered! Click 'Log In'.";
+            return;
+          }
+          const freshProfile = {
+            name: uname,
+            level: 1,
+            highestUnlockedLevel: 1,
+            gold: 100,
+            streak: 0,
+            lockedChests: 1,
+            isPremium: false,
+            customAvatar: null,
+            unlockedSkins: ["rank_default"],
+            levelBestScores: {},
+            seenHashes: [],
+            stats: {
+              "Lexicon Library": { correct: 0, total: 0, timeSum: 0 },
+              "Verbal Vault":    { correct: 0, total: 0, timeSum: 0 },
+              "Number Nexus":    { correct: 0, total: 0, timeSum: 0 },
+              "Spatial Sanctum": { correct: 0, total: 0, timeSum: 0 }
+            }
+          };
+          await sb.from("pupils").upsert({
+            name: uname,
+            username: uname,
+            username_lower: key,
+            password_hash: encodedPwd,
+            level: 1,
+            highest_unlocked_level: 1,
+            gold: 100,
+            streak: 0,
+            stats: freshProfile.stats,
+            seen_hashes: [],
+            level_best_scores: {},
+            updated_at: new Date().toISOString()
+          }, { onConflict: "username_lower" });
+
+          db[key] = { username: uname, password: encodedPwd, profile: freshProfile };
+          saveAccountsDb(db);
+          errEl.textContent = "";
+          loginSuccess(key, freshProfile);
+          return;
+        } else if (cloudUser) {
+          const validPwd =
+            !cloudUser.password_hash ||
+            cloudUser.password_hash === "b12345" ||
+            cloudUser.password_hash === encodedPwd ||
+            cloudUser.password_hash === pwd ||
+            (db[key] && db[key].password === encodedPwd);
+
+          if (!validPwd) {
+            errEl.style.color = "var(--danger)";
+            errEl.textContent = "⚠️ Incorrect username or password!";
+            return;
+          }
+
+          const syncedProfile = {
+            name: cloudUser.name || cloudUser.username || uname,
+            level: Number(cloudUser.highest_unlocked_level || cloudUser.level || 1),
+            highestUnlockedLevel: Number(cloudUser.highest_unlocked_level || cloudUser.level || 1),
+            gold: Number(cloudUser.gold || 100),
+            streak: Number(cloudUser.streak || 0),
+            lockedChests: 1,
+            isPremium: Boolean(db[key] && db[key].profile && db[key].profile.isPremium),
+            customAvatar: null,
+            unlockedSkins: ["rank_default"],
+            levelBestScores: cloudUser.level_best_scores || {},
+            seenHashes: Array.isArray(cloudUser.seen_hashes) ? cloudUser.seen_hashes : [],
+            stats: cloudUser.stats || IRE_DEFAULT_PROFILE.stats
+          };
+          db[key] = { username: cloudUser.username || uname, password: encodedPwd, profile: syncedProfile };
+          saveAccountsDb(db);
+          errEl.textContent = "";
+          loginSuccess(key, syncedProfile);
+          await window.saveCurrentPupilProfile();
+          return;
+        }
+      } catch (e) {
+        console.error("Supabase login error:", e);
+      }
+    }
+
+    if (db[key]) {
+      errEl.textContent = "";
+      loginSuccess(key, db[key].profile);
+      await window.saveCurrentPupilProfile();
+      return;
+    }
+
+    errEl.style.color = "var(--danger)";
+    errEl.textContent = "⚠️ Account not found. Click 'New Pupil Sign Up' to create it!";
+  };
+
+  let cachedCloudLeaderboard = null;
+
+  async function refreshCloudLeaderboard() {
+    const sb = getSb();
+    if (!sb) return;
+    try {
+      const { data } = await sb
+        .from("pupils")
+        .select("*")
+        .order("highest_unlocked_level", { ascending: false })
+        .order("gold", { ascending: false })
+        .limit(50);
+
+      if (Array.isArray(data) && data.length > 0) {
+        const seenNames = new Set();
+        cachedCloudLeaderboard = [];
+        data.forEach(r => {
+          const uLower = (r.username_lower || r.username || "").toLowerCase();
+          const isIre = uLower === "ireisthebest99" || uLower === "ireoluwa" || (r.name || "").toLowerCase() === "ireoluwa";
+          const displayName = isIre ? "Ireoluwa" : (r.name || r.username || "Scholar");
+          const dedupeKey = displayName.toLowerCase();
+          if (seenNames.has(dedupeKey)) return;
+          seenNames.add(dedupeKey);
+
+          const lvl = isIre ? Math.max(72, Number(r.highest_unlocked_level || r.level || 72)) : Number(r.highest_unlocked_level || r.level || 1);
+          const info = getLevelInfo(lvl);
+          const solvedCount = isIre
+            ? Math.max(393, Array.isArray(r.seen_hashes) ? r.seen_hashes.length : 393)
+            : (Array.isArray(r.seen_hashes) && r.seen_hashes.length ? r.seen_hashes.length : 0);
+
+          cachedCloudLeaderboard.push({
+            name: displayName,
+            level: lvl,
+            accuracy: 92,
+            solved: solvedCount,
+            gold: isIre ? Math.max(58505, Number(r.gold || 58505)) : Number(r.gold || 100),
+            avatar: isIre ? "🐉" : info.icon,
+            isMe: Boolean(
+              window.currentUsername &&
+              (uLower === window.currentUsername.toLowerCase() || dedupeKey === (hero.name || "").toLowerCase())
+            ),
+            isBot: false
+          });
+        });
+      }
+    } catch (e) {
+      console.error("Leaderboard error:", e);
+    }
+  }
+
+  const origGetCombinedLb = window.getCombinedLeaderboardList;
+  window.getCombinedLeaderboardList = function() {
+    if (!cachedCloudLeaderboard) return origGetCombinedLb();
+    const combined = [...cachedCloudLeaderboard];
+    BENCHMARK_CLASSMATES.forEach(bot => {
+      if (!combined.some(r => r.name.toLowerCase() === bot.name.toLowerCase())) {
+        combined.push({ ...bot, isMe: false });
+      }
+    });
+    combined.sort((a, b) => {
+      if (b.level !== a.level) return b.level - a.level;
+      return b.gold - a.gold;
+    });
+    return combined;
+  };
+
+  const origOpenLbModal = window.openLeaderboardModal;
+  window.openLeaderboardModal = async function() {
+    await window.saveCurrentPupilProfile();
+    await refreshCloudLeaderboard();
+    origOpenLbModal();
+    rebrandToMakGuide();
+  };
+
+  const origUpdateHudAndMap = window.updateHudAndMap;
+  window.updateHudAndMap = function() {
+    origUpdateHudAndMap();
+    rebrandToMakGuide();
+    if (!hasFullAccess()) {
+      document.querySelectorAll("#levelMapGrid .level-node").forEach(card => {
+        const h4 = card.querySelector("h4");
+        const btn = card.querySelector("button");
+        if (!h4 || !btn) return;
+        const m = h4.textContent.match(/Lvl\s+(\d+)/i);
+        if (m && Number(m[1]) >= 10) {
+          btn.textContent = `🔒 Unlock Lvl ${m[1]} (Lifetime Pass)`;
+          btn.disabled = false;
+          btn.style.background = "linear-gradient(135deg, #f59e0b, #ea580c)";
+          btn.onclick = () => window.openPaywallModal();
+        }
+      });
+    }
+  };
+
+  window.addEventListener("DOMContentLoaded", async () => {
+    removeTasterAndGuest();
+    rebrandToMakGuide();
+    wireStripeButtons();
+    await ensureIreAccountExists();
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("sub") === "success" || params.get("payment") === "success") {
+      hero.isPremium = true;
+      await window.saveCurrentPupilProfile();
+      alert("🎉 Payment complete! All 500 levels are now unlocked.");
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    await refreshCloudLeaderboard();
+    if (window.currentUsername) window.updateHudAndMap();
+  });
+})();
 </script>
