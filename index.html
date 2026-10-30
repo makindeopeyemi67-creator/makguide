@@ -6151,3 +6151,229 @@ window.selectAndStartLevel = function(lvl) {
   });
 })();
 </script>
+<script>
+/* =====================================================================
+   MASTER OVERRIDE V9: INSTANT UNLOCK FOR IREOLUWA, STRIPE REDIRECT,
+   & AUTOMATIC LEVEL 10-500 UNLOCK ON SUCCESSFUL PAYMENT
+   ===================================================================== */
+(function() {
+  const STRIPE_PAYMENT_URL = "https://buy.stripe.com/9B6bJ35VD0PsfBS20LdAk00";
+  
+  // ALWAYS keep "ireisthebest99" and "ireoluwa" here so they have permanent free/VIP lifetime access
+  const FREE_VIP_USERS = ["ireisthebest99", "ireoluwa"];
+
+  const IRE_DEFAULT_PROFILE = {
+    name: "Ireoluwa",
+    level: 72,
+    highestUnlockedLevel: 72,
+    gold: 58505,
+    streak: 19,
+    lockedChests: 1,
+    isPremium: true, // Permanent VIP status for Ireoluwa
+    customAvatar: "🐉",
+    unlockedSkins: ["rank_default"],
+    levelBestScores: {},
+    seenHashes: Array.from({ length: 393 }, (_, i) => "q_" + i),
+    stats: {
+      "Lexicon Library": { correct: 95, total: 100, timeSum: 1200 },
+      "Verbal Vault":    { correct: 95, total: 100, timeSum: 1200 },
+      "Number Nexus":    { correct: 95, total: 100, timeSum: 1200 },
+      "Spatial Sanctum": { correct: 85, total: 93,  timeSum: 1100 }
+    }
+  };
+
+  // Check if current user has full lifetime access
+  function hasFullAccess() {
+    const uname = (window.currentUsername || "").toLowerCase();
+    const hname = ((window.hero && window.hero.name) || "").toLowerCase();
+    
+    if (FREE_VIP_USERS.includes(uname) || FREE_VIP_USERS.includes(hname)) return true;
+    if (window.hero && window.hero.isPremium === true) return true;
+    
+    // Check local storage flag
+    try {
+      const active = localStorage.getItem("MAK11GUIDE_ACTIVE_USER_V3") || "";
+      const db = JSON.parse(localStorage.getItem("MAK11GUIDE_ACCOUNTS_DB_V3") || "{}");
+      if (db[active.toLowerCase()] && db[active.toLowerCase()].profile && db[active.toLowerCase()].profile.isPremium) {
+        return true;
+      }
+    } catch(e) {}
+
+    return false;
+  }
+
+  // Forgot Password Helper
+  window.showForgotPassword = function(e) {
+    if (e) e.preventDefault();
+    const usernameInput = document.getElementById("authUsername");
+    const enteredUname = usernameInput ? usernameInput.value.trim() : "";
+    
+    if (!enteredUname) {
+      alert("⚠️ Please type your Pupil Username in the username box first.");
+      if (usernameInput) usernameInput.focus();
+      return;
+    }
+
+    const key = enteredUname.toLowerCase();
+    if (key === "ireisthebest99" || key === "ireoluwa") {
+      alert(`✅ Account Found: "ireisthebest99"\n\nYour Secret Password is: b12345\n\n(Level: 72, Gold: 58,505, Lifetime Access: Active)`);
+      return;
+    }
+
+    const db = typeof getAccountsDb === "function" ? getAccountsDb() : {};
+    const userRecord = db[key];
+    if (!userRecord) {
+      alert(`❌ No local account found for "${enteredUname}".`);
+      return;
+    }
+    let decodedPwd = "Unknown";
+    try { decodedPwd = atob(userRecord.password); } catch (err) { decodedPwd = userRecord.password; }
+    alert(`✅ Account Found for: "${userRecord.username || enteredUname}"\n\nYour Secret Password is: ${decodedPwd}`);
+  };
+
+  // Stripe Checkout Handler
+  window.startStripeCheckout = function(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    window.top.location.href = STRIPE_PAYMENT_URL;
+  };
+
+  window.simulateParentUnlock = function() {
+    window.top.location.href = STRIPE_PAYMENT_URL;
+  };
+
+  function wireStripeButtons() {
+    const modal = document.getElementById("paywallModal");
+    if (!modal) return;
+    const btns = modal.querySelectorAll("button.btn-play");
+    if (btns.length > 0) {
+      const payBtn = btns[0];
+      payBtn.removeAttribute("onclick");
+      payBtn.innerHTML = "👑 Lifetime Pass ($)";
+      payBtn.onclick = function(e) {
+        e.preventDefault();
+        window.top.location.href = STRIPE_PAYMENT_URL;
+      };
+    }
+  }
+
+  window.openPaywallModal = function() {
+    const modal = document.getElementById("paywallModal");
+    if (!modal) {
+      window.top.location.href = STRIPE_PAYMENT_URL;
+      return;
+    }
+    const banner = document.getElementById("chestStatusBanner");
+    if (banner) {
+      banner.innerHTML = `🔒 <strong>Levels 1–9 are free!</strong> To unlock <strong>Levels 10 to 500</strong> permanently, click the Lifetime Pass button below.`;
+    }
+    wireStripeButtons();
+    modal.classList.remove("hidden");
+  };
+
+  // Intercept level clicks >= 10
+  const origStartTrial = window.startLevelMasteryTrial;
+  window.startLevelMasteryTrial = function(lvl) {
+    const targetLvl = Number(lvl || (window.hero && window.hero.level) || 1);
+    if (targetLvl >= 10 && !hasFullAccess()) {
+      window.openPaywallModal();
+      return;
+    }
+    if (origStartTrial) return origStartTrial(targetLvl);
+  };
+
+  window.selectAndStartLevel = function(lvl) {
+    const targetLvl = Number(lvl || 1);
+    if (targetLvl > hero.highestUnlockedLevel && !hasFullAccess()) return;
+    if (targetLvl >= 10 && !hasFullAccess()) {
+      window.openPaywallModal();
+      return;
+    }
+    hero.level = targetLvl;
+    saveCurrentPupilProfile();
+    updateHudAndMap();
+    window.startLevelMasteryTrial(targetLvl);
+  };
+
+  // Login handler ensuring Ireoluwa gets Level 72 and isPremium = true
+  window.handleAuthSubmit = function() {
+    const uname = document.getElementById("authUsername").value.trim();
+    const pwd = document.getElementById("authPassword").value.trim();
+    const errEl = document.getElementById("authErrorMsg");
+
+    if (uname.length < 3 || pwd.length < 3) {
+      if (errEl) errEl.textContent = "⚠️ Username and password must each be at least 3 characters.";
+      return;
+    }
+
+    const key = uname.toLowerCase();
+    const encodedPwd = btoa(pwd);
+    let db = typeof getAccountsDb === "function" ? getAccountsDb() : {};
+
+    if (key === "ireisthebest99" || key === "ireoluwa") {
+      const merged = Object.assign({}, IRE_DEFAULT_PROFILE, (db["ireisthebest99"] && db["ireisthebest99"].profile) || {});
+      merged.isPremium = true; // Force premium open
+      merged.highestUnlockedLevel = 72;
+      merged.level = 72;
+      
+      db["ireisthebest99"] = { username: "ireisthebest99", password: encodedPwd, profile: merged };
+      if (typeof saveAccountsDb === "function") saveAccountsDb(db);
+      if (typeof loginSuccess === "function") {
+        loginSuccess("ireisthebest99", merged);
+      }
+      return;
+    }
+
+    if (db[key]) {
+      if (typeof loginSuccess === "function") {
+        loginSuccess(key, db[key].profile);
+      }
+      return;
+    }
+
+    const freshProfile = {
+      name: uname,
+      level: 1,
+      highestUnlockedLevel: 1,
+      gold: 100,
+      streak: 0,
+      lockedChests: 1,
+      isPremium: false,
+      customAvatar: null,
+      unlockedSkins: ["rank_default"],
+      levelBestScores: {},
+      seenHashes: [],
+      stats: {
+        "Lexicon Library": { correct: 0, total: 0, timeSum: 0 },
+        "Verbal Vault":    { correct: 0, total: 0, timeSum: 0 },
+        "Number Nexus":    { correct: 0, total: 0, timeSum: 0 },
+        "Spatial Sanctum": { correct: 0, total: 0, timeSum: 0 }
+      }
+    };
+    db[key] = { username: uname, password: encodedPwd, profile: freshProfile };
+    if (typeof saveAccountsDb === "function") saveAccountsDb(db);
+    if (typeof loginSuccess === "function") {
+      loginSuccess(key, freshProfile);
+    }
+  };
+
+  // On page load: check if returning from successful Stripe payment
+  window.addEventListener("DOMContentLoaded", () => {
+    let db = typeof getAccountsDb === "function" ? getAccountsDb() : {};
+    if (!db["ireisthebest99"]) {
+      db["ireisthebest99"] = { username: "ireisthebest99", password: btoa("b12345"), profile: IRE_DEFAULT_PROFILE };
+      if (typeof saveAccountsDb === "function") saveAccountsDb(db);
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("sub") === "success" || params.get("payment") === "success" || params.get("success") === "true") {
+      if (window.hero) {
+        window.hero.isPremium = true;
+        window.hero.highestUnlockedLevel = 500; // Unlock all 500 levels!
+        if (typeof saveCurrentPupilProfile === "function") saveCurrentPupilProfile();
+      }
+      alert("🎉 Payment Successful! All 500 levels are now permanently unlocked.");
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  });
+})();
+</script>
