@@ -38,15 +38,6 @@
   button { font-family: inherit; }
   button:focus-visible, input:focus-visible { outline: 3px solid #fdba74; outline-offset: 2px; }
 
-<!-- DEDICATED LIFETIME PASS PAYMENT BANNER -->
-<div style="background:linear-gradient(135deg, #fef3c7, #fed7aa); border:2px solid #f59e0b; border-radius:18px; padding:20px; text-align:center; box-shadow:var(--shadow); margin-bottom:16px;">
-  <h3 style="color:#9a3412; font-size:1.35rem; margin-bottom:6px;">👑 Unlock Full Access (Levels 10 to 500)</h3>
-  <p style="color:#78716c; font-size:0.9rem; margin-bottom:14px;">Get complete lifetime access to all 500 levels, 12,500+ questions, and classmate duels.</p>
-  <button class="btn-play btn-gold" style="max-width:320px; margin:0 auto; font-size:1.05rem; padding:14px 20px;" onclick="openLifetimePassCheckout()">
-    💳 Buy Lifetime Pass via Stripe
-  </button>
-</div>
-
   /* LOGIN */
   .auth-wrapper { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; background: var(--grad); }
   .auth-card { background: #fff; border-radius: 24px; max-width: 460px; width: 100%; padding: 30px 26px; box-shadow: 0 24px 60px rgba(127, 29, 29, 0.35); text-align: center; }
@@ -6375,5 +6366,326 @@ window.selectAndStartLevel = function(lvl) {
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   });
+})();
+</script>
+<script>
+/* =====================================================================
+   FINAL FIX: IREOLUWA AT LEVEL 72/500 WITH ALL 500 LEVELS OPEN,
+   AND STRIPE PAYWALL LOCK ON LEVELS 10–500 FOR ALL OTHER PUPILS
+   ===================================================================== */
+(function() {
+  const STRIPE_PAYMENT_URL = "https://buy.stripe.com/9B6bJ35VD0PsfBS20LdAk00";
+  const IRE_USERS = ["ireisthebest99", "ireoluwa"];
+
+  // Clear the old global flag so other pupil accounts are properly locked at Level 10
+  localStorage.removeItem("MAKGUIDE_LIFETIME_PASS_ACTIVE");
+
+  function isIreAccount(unameKey) {
+    const k = String(unameKey || currentUsername || (hero && hero.name) || "").toLowerCase().trim();
+    return IRE_USERS.includes(k);
+  }
+
+  function hasFullLevelAccess() {
+    if (isIreAccount()) return true;
+    if (hero && hero.isPremium === true) return true;
+    try {
+      const db = getAccountsDb();
+      const k = String(currentUsername || "").toLowerCase().trim();
+      if (k && db[k] && db[k].profile && db[k].profile.isPremium === true) return true;
+    } catch (e) {}
+    return false;
+  }
+
+  // 1. Restore Ireoluwa's true progress to Level 72/500 (if it was set to 500)
+  function repairIreProfile() {
+    const db = getAccountsDb();
+    ["ireisthebest99", "ireoluwa"].forEach(k => {
+      if (db[k] && db[k].profile) {
+        const p = db[k].profile;
+        p.name = "Ireoluwa";
+        p.isPremium = true;
+        if (!p.level || p.level >= 500 || p.level < 72) p.level = 72;
+        if (!p.highestUnlockedLevel || p.highestUnlockedLevel >= 500 || p.highestUnlockedLevel < 72) {
+          p.highestUnlockedLevel = p.level;
+        }
+        p.gold = Math.max(58505, Number(p.gold || 58505));
+        p.streak = Math.max(19, Number(p.streak || 19));
+        if (!Array.isArray(p.seenHashes) || p.seenHashes.length < 393) {
+          p.seenHashes = Array.from({ length: 393 }, (_, i) => "q_" + i);
+        }
+      }
+    });
+    saveAccountsDb(db);
+
+    if (isIreAccount()) {
+      hero.name = "Ireoluwa";
+      hero.isPremium = true;
+      if (!hero.level || hero.level >= 500 || hero.level < 72) hero.level = 72;
+      if (!hero.highestUnlockedLevel || hero.highestUnlockedLevel >= 500 || hero.highestUnlockedLevel < 72) {
+        hero.highestUnlockedLevel = hero.level;
+      }
+      hero.gold = Math.max(58505, Number(hero.gold || 58505));
+      hero.streak = Math.max(19, Number(hero.streak || 19));
+      if (!Array.isArray(hero.seenHashes) || hero.seenHashes.length < 393) {
+        hero.seenHashes = Array.from({ length: 393 }, (_, i) => "q_" + i);
+      }
+      saveCurrentPupilProfile();
+    }
+
+    // Keep window properties in sync for any older scripts
+    window.hero = hero;
+    window.currentUsername = currentUsername;
+  }
+
+  // 2. Stripe Checkout & Post-Payment Unlock for Paying Pupils
+  window.startStripeSubscriptionCheckout = function(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    if (currentUsername) {
+      localStorage.setItem("MAKGUIDE_PENDING_PAID_USER", currentUsername.toLowerCase().trim());
+    }
+    window.top.location.href = STRIPE_PAYMENT_URL;
+  };
+  window.startStripeCheckout = window.startStripeSubscriptionCheckout;
+  window.openLifetimePassCheckout = window.startStripeSubscriptionCheckout;
+  window.simulateParentUnlock = window.startStripeSubscriptionCheckout;
+
+  window.openPaywallModal = function() {
+    const modal = document.getElementById("paywallModal");
+    if (!modal) {
+      window.startStripeSubscriptionCheckout();
+      return;
+    }
+    const banner = document.getElementById("chestStatusBanner");
+    if (banner) {
+      banner.innerHTML = hasFullLevelAccess()
+        ? `✅ <strong>Lifetime Pass Active!</strong> All 500 levels are open for <strong>${hero.name}</strong>.`
+        : `🔒 <strong>Levels 1–9 are free!</strong> To unlock <strong>Levels 10 to 500</strong>, activate the <strong>Lifetime Pass</strong> below.`;
+    }
+    const waBox = document.getElementById("whatsappReportText");
+    if (waBox && typeof buildWhatsAppText === "function") {
+      waBox.textContent = buildWhatsAppText();
+    }
+    const btns = modal.querySelectorAll("button.btn-play");
+    if (btns.length > 0) {
+      btns[0].removeAttribute("onclick");
+      btns[0].innerHTML = "👑 Lifetime Pass";
+      btns[0].onclick = window.startStripeSubscriptionCheckout;
+    }
+    modal.classList.remove("hidden");
+  };
+
+  // 3. Clean Map & HUD Renderer (Opens all 500 levels for Ire/Paid, locks Lvl 10+ for others)
+  window.updateHudAndMap = function() {
+    repairIreProfile();
+    const info = getLevelInfo(hero.level);
+    const avatarIcon = hero.customAvatar || info.icon;
+    const fullAccess = hasFullLevelAccess();
+    const ireLogged = isIreAccount();
+
+    document.getElementById("heroName").textContent = hero.name;
+    document.getElementById("heroLvl").textContent = hero.level;
+    document.getElementById("heroRankTitle").textContent = info.title;
+    document.getElementById("goldCount").textContent = hero.gold;
+    document.getElementById("heroAvatar").textContent = avatarIcon;
+    document.getElementById("streakBadge").textContent = `🔥 Streak: ${hero.streak}`;
+
+    const progressPct = Math.round(((hero.highestUnlockedLevel - 1) / MAX_LEVEL) * 100);
+    document.getElementById("xpBar").style.width = `${Math.max(5, progressPct)}%`;
+    document.getElementById("xpSubtext").textContent =
+      `Unlocked: Level ${hero.highestUnlockedLevel}/${MAX_LEVEL} • 25 Qs/Level (90% = 23/25 Pass) • Solved: ${hero.seenHashes.length}`;
+
+    document.getElementById("currentTierBadge").textContent = info.tier;
+    document.getElementById("currentLevelHeadline").textContent =
+      `⚔️ Level ${info.level} Mastery Trial: ${info.icon} ${info.title} (25 Questions)`;
+    document.getElementById("startBtnLvlNum").textContent = info.level;
+    document.getElementById("pracLvlNum").textContent = info.level;
+
+    const pillsEl = document.getElementById("currentLevelSyllabusPills");
+    pillsEl.innerHTML = info.topics.map(t => `<span class="syl-pill">📘 ${t}</span>`).join("");
+
+    const lbList = getCombinedLeaderboardList();
+    const myIndex = lbList.findIndex(x => x.isMe);
+    document.getElementById("myLeaderboardRankBadge").textContent =
+      `Your Class Rank: #${myIndex >= 0 ? myIndex + 1 : 1} of ${lbList.length}`;
+    const miniPreview = document.getElementById("miniLeaderboardPreview");
+    miniPreview.innerHTML = lbList.slice(0, 3).map((e, i) => {
+      const m = i === 0 ? "🥇" : i === 1 ? "🥈" : "🥉";
+      return `<div style="display:flex; justify-content:space-between; font-size:0.84rem; padding:4px 0; border-bottom:1px solid #ffedd5;">
+        <span>${m} ${e.avatar} <strong>${e.name}</strong> ${e.isMe ? '(You)' : ''}</span>
+        <span style="color:var(--gold); font-weight:700;">Lvl ${e.level}/${MAX_LEVEL} • ${e.accuracy}%</span>
+      </div>`;
+    }).join("");
+
+    const grid = document.getElementById("levelMapGrid");
+    grid.innerHTML = "";
+    if (mapRound === null) mapRound = info.round;
+
+    document.getElementById("roundTabs").innerHTML = [1, 2, 3, 4, 5].map(r => {
+      const roundLocked = !ireLogged && !fullAccess && hero.highestUnlockedLevel < (r - 1) * 100 + 1;
+      return `<button class="lib-tab ${r === mapRound ? "active" : ""}" onclick="mapRound=${r};updateHudAndMap()">${roundLocked ? "🔒 " : ""}Round ${r}<br><small>Levels ${(r - 1) * 100 + 1}–${r * 100}</small></button>`;
+    }).join("");
+
+    LEVEL_SYLLABUS.filter(o => o.round === mapRound).forEach(lvlObj => {
+      const isCurrent = lvlObj.level === hero.level;
+      const bestPct = hero.levelBestScores[lvlObj.level] || 0;
+      const needsPaywall = lvlObj.level >= 10 && !fullAccess;
+      const isUnlocked = ireLogged || fullAccess || (lvlObj.level <= hero.highestUnlockedLevel && !needsPaywall);
+
+      if (lvlObj.part === 1) {
+        const hd = document.createElement("div");
+        hd.className = "stage-head";
+        hd.innerHTML = `<span>${lvlObj.icon} Stage ${lvlObj.stage}: ${lvlObj.stageTitle}</span><small>${lvlObj.tier}</small>`;
+        grid.appendChild(hd);
+      }
+
+      const card = document.createElement("div");
+      card.className = "level-node " + (isCurrent ? "current" : isUnlocked ? "unlocked" : "locked");
+
+      let btnLabel = "";
+      let btnBg = "#a8a29e";
+      let btnDisabled = false;
+
+      if (needsPaywall) {
+        btnLabel = `🔒 Unlock Lvl ${lvlObj.level} (Lifetime Pass)`;
+        btnBg = "linear-gradient(135deg, #f59e0b, #ea580c)";
+        btnDisabled = false;
+      } else if (bestPct >= 90) {
+        btnLabel = `✔ Passed (${bestPct}%) • Replay 25 Qs`;
+        btnBg = isCurrent ? "var(--gold)" : "var(--primary)";
+      } else if (isUnlocked) {
+        btnLabel = `▶ Play Level ${lvlObj.level} (25 Qs)`;
+        btnBg = isCurrent ? "var(--gold)" : "var(--primary)";
+      } else {
+        btnLabel = `🔒 Pass Lvl ${lvlObj.level - 1} (90%)`;
+        btnDisabled = true;
+      }
+
+      card.innerHTML = `
+        <div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span class="tier-badge">${lvlObj.tier.split(":")[0]}</span>
+            <span style="font-size:0.78rem; font-weight:800; color:${bestPct >= 90 ? 'var(--success)' : 'var(--gold)'};">
+              ${bestPct > 0 ? `Best: ${bestPct}%` : isUnlocked ? "25 Questions" : "🔒 Locked"}
+            </span>
+          </div>
+          <h4 style="font-size:1.05rem; margin-top:6px;">Lvl ${lvlObj.level}: ${lvlObj.icon} ${lvlObj.title}</h4>
+          ${lvlObj.part === 1 ? `<ul style="padding-left:16px; margin-top:6px; color:var(--text-muted); font-size:0.78rem; line-height:1.4;">${lvlObj.topics.map(t => `<li>${t}</li>`).join("")}</ul>` : `<p style="margin-top:6px; color:var(--text-muted); font-size:0.78rem;">Part ${lvlObj.part} of 5 &bull; same topics, tougher mix</p>`}
+        </div>
+        <button class="btn-play" style="padding:8px 12px; font-size:0.82rem; background:${btnBg}; color:#fff;" ${btnDisabled ? "disabled" : ""}>
+          ${btnLabel}
+        </button>
+      `;
+
+      const btn = card.querySelector("button");
+      if (btn && !btnDisabled) {
+        btn.onclick = () => {
+          if (needsPaywall) {
+            window.openPaywallModal();
+          } else {
+            window.selectAndStartLevel(lvlObj.level);
+          }
+        };
+      }
+      grid.appendChild(card);
+    });
+  };
+
+  // 4. Level Selection & Trial Start Gate
+  window.selectAndStartLevel = function(lvl) {
+    const targetLvl = Number(lvl || 1);
+    if (targetLvl >= 10 && !hasFullLevelAccess()) {
+      window.openPaywallModal();
+      return;
+    }
+    if (!isIreAccount() && !hasFullLevelAccess() && targetLvl > hero.highestUnlockedLevel) return;
+    hero.level = targetLvl;
+    saveCurrentPupilProfile();
+    window.updateHudAndMap();
+    window.startLevelMasteryTrial(targetLvl);
+  };
+
+  window.startLevelMasteryTrial = function(lvl) {
+    const targetLvl = Number(lvl || hero.level || 1);
+    if (targetLvl >= 10 && !hasFullLevelAccess()) {
+      window.openPaywallModal();
+      return;
+    }
+    session.mode = "level_trial";
+    session.level = targetLvl;
+    session.totalQuestions = 25;
+    session.plan = makePlan(25);
+    session.currentIndex = 0;
+    session.correctCount = 0;
+    session.history = [];
+
+    const info = getLevelInfo(targetLvl);
+    document.getElementById("modeBanner").textContent =
+      `⚔️ Level ${targetLvl} Mastery Trial: ${info.icon} ${info.title} (25 Questions • Need 23/25 for 90%)`;
+    document.getElementById("hubScreen").classList.add("hidden");
+    document.getElementById("revisionScreen").classList.add("hidden");
+    document.getElementById("arenaScreen").classList.remove("hidden");
+
+    renderProgressDots();
+    showLevelIntro(targetLvl, info, loadTrialQuestion);
+  };
+
+  window.loginSuccess = function(userKey, profile) {
+    currentUsername = userKey;
+    window.currentUsername = userKey;
+    localStorage.setItem(ACTIVE_USER_KEY, userKey);
+    Object.assign(hero, profile);
+    window.hero = hero;
+    mapRound = null;
+
+    if (isIreAccount(userKey)) {
+      repairIreProfile();
+    } else {
+      // New or other non-Ire accounts start at their own earned level (not 72)
+      if (!hero.highestUnlockedLevel || hero.highestUnlockedLevel === 72 && hero.seenHashes.length === 0) {
+        hero.level = 1;
+        hero.highestUnlockedLevel = 1;
+        hero.gold = 100;
+        hero.streak = 0;
+        saveCurrentPupilProfile();
+      }
+    }
+
+    const logoutBanner = document.getElementById("logoutSuccessBanner");
+    if (logoutBanner) logoutBanner.classList.add("hidden");
+    document.getElementById("authScreen").classList.add("hidden");
+    document.getElementById("mainHud").classList.remove("hidden");
+    document.getElementById("mainContainer").classList.remove("hidden");
+    window.updateHudAndMap();
+  };
+
+  // 5. Check Stripe Return & Repair Ire's Chip on Load
+  function initOnLoad() {
+    repairIreProfile();
+    if (typeof renderQuickUserChips === "function") renderQuickUserChips();
+
+    const params = new URLSearchParams(window.location.search);
+    const pendingPaidUser = localStorage.getItem("MAKGUIDE_PENDING_PAID_USER");
+    if (params.get("sub") === "success" || params.get("payment") === "success" || params.get("success") === "true") {
+      const targetUser = (pendingPaidUser || currentUsername || "").toLowerCase().trim();
+      const db = getAccountsDb();
+      if (targetUser && db[targetUser] && db[targetUser].profile) {
+        db[targetUser].profile.isPremium = true;
+        saveAccountsDb(db);
+      }
+      if (hero) {
+        hero.isPremium = true;
+        saveCurrentPupilProfile();
+      }
+      localStorage.removeItem("MAKGUIDE_PENDING_PAID_USER");
+      alert("🎉 Lifetime Pass Activated! All 500 levels are now unlocked for your account.");
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    if (currentUsername) window.updateHudAndMap();
+  }
+
+  window.addEventListener("DOMContentLoaded", initOnLoad);
+  window.addEventListener("load", initOnLoad);
+  setTimeout(initOnLoad, 150);
 })();
 </script>
