@@ -8011,6 +8011,308 @@ window.selectAndStartLevel = function(lvl) {
     </div>
   </div>
 </div>
+<script>
+/* =====================================================================
+   STRICT LOGIN & PASSWORD VERIFICATION GATE
+   - Blocks unregistered usernames on Log In
+   - Blocks wrong passwords & prompts Forgot/Reset Password
+   - Starts new sign-ups cleanly at Level 1
+   ===================================================================== */
+(function() {
+  function readAllAccounts() {
+    let dbMain = {}, dbAlt = {};
+    try { dbMain = JSON.parse(localStorage.getItem("Makguide_ACCOUNTS_DB_V3") || "{}"); } catch (e) {}
+    try { dbAlt  = JSON.parse(localStorage.getItem("MAK11GUIDE_ACCOUNTS_DB_V3") || "{}"); } catch (e) {}
+    const merged = Object.assign({}, dbAlt, dbMain);
+
+    // Ensure Ireoluwa's account exists with a stored password (default b12345 if none set yet)
+    if (!merged["ireisthebest99"]) {
+      merged["ireisthebest99"] = {
+        username: "ireisthebest99",
+        password: btoa("b12345"),
+        profile: {
+          name: "Ireoluwa",
+          level: 72,
+          highestUnlockedLevel: 72,
+          gold: 58505,
+          streak: 19,
+          lockedChests: 1,
+          isPremium: true,
+          customAvatar: "🐉",
+          unlockedSkins: ["rank_default"],
+          levelBestScores: {},
+          seenHashes: Array.from({ length: 393 }, (_, i) => "q_" + i),
+          stats: {
+            "Lexicon Library": { correct: 95, total: 100, timeSum: 1200 },
+            "Verbal Vault":    { correct: 95, total: 100, timeSum: 1200 },
+            "Number Nexus":    { correct: 95, total: 100, timeSum: 1200 },
+            "Spatial Sanctum": { correct: 85, total: 93,  timeSum: 1100 }
+          }
+        }
+      };
+    } else if (!merged["ireisthebest99"].password) {
+      merged["ireisthebest99"].password = btoa("b12345");
+    }
+
+    return merged;
+  }
+
+  function writeAllAccounts(db) {
+    try {
+      localStorage.setItem("Makguide_ACCOUNTS_DB_V3", JSON.stringify(db));
+      localStorage.setItem("MAK11GUIDE_ACCOUNTS_DB_V3", JSON.stringify(db));
+    } catch (e) {}
+  }
+
+  // Track whether the user is on "Log In" or "New Pupil Sign Up"
+  let currentAuthTabMode = "login";
+
+  function isRegisterModeActive() {
+    const regBtn = document.getElementById("tabRegisterBtn") || document.getElementById("authTabRegister");
+    if (regBtn && regBtn.classList.contains("active")) return true;
+    const submitBtn = document.getElementById("authSubmitBtn");
+    if (submitBtn && (submitBtn.textContent || "").toLowerCase().includes("create")) return true;
+    return currentAuthTabMode === "register";
+  }
+
+  function strictSwitchAuthTab(mode) {
+    currentAuthTabMode = mode;
+    try { authMode = mode; } catch (e) {}
+    window.authMode = mode;
+
+    const loginBtn = document.getElementById("tabLoginBtn") || document.getElementById("authTabLogin");
+    const regBtn = document.getElementById("tabRegisterBtn") || document.getElementById("authTabRegister");
+    const submitBtn = document.getElementById("authSubmitBtn");
+    const errEl = document.getElementById("authErrorMsg");
+
+    if (loginBtn) loginBtn.classList.toggle("active", mode === "login");
+    if (regBtn) regBtn.classList.toggle("active", mode === "register");
+    if (submitBtn) {
+      submitBtn.textContent =
+        mode === "login" ? "🚀 Log In to Makguide" : "✨ Create Pupil Account & Start Level 1";
+    }
+    if (errEl) errEl.textContent = "";
+  }
+
+  // Saved profile chips only autofill the username and require the password to be typed
+  function strictFillQuickUser(uname) {
+    strictSwitchAuthTab("login");
+    const uEl = document.getElementById("authUsername");
+    const pEl = document.getElementById("authPassword");
+    if (uEl) uEl.value = uname;
+    if (pEl) {
+      pEl.value = "";
+      pEl.focus();
+    }
+  }
+
+  // Strict Login & Registration Handler
+  function strictHandleAuthSubmit() {
+    const unameEl = document.getElementById("authUsername");
+    const pwdEl = document.getElementById("authPassword");
+    const errEl = document.getElementById("authErrorMsg");
+
+    const uname = unameEl ? unameEl.value.trim() : "";
+    const pwd = pwdEl ? pwdEl.value.trim() : "";
+
+    if (uname.length < 3 || pwd.length < 3) {
+      if (errEl) {
+        errEl.style.color = "var(--danger, #dc2626)";
+        errEl.textContent = "⚠️ Username and password must each be at least 3 characters.";
+      }
+      return;
+    }
+
+    const db = readAllAccounts();
+    const key = uname.toLowerCase();
+    const encodedInputPwd = btoa(pwd);
+
+    // 1. NEW PUPIL SIGN UP MODE
+    if (isRegisterModeActive()) {
+      if (db[key] || key === "ireoluwa") {
+        if (errEl) {
+          errEl.style.color = "var(--danger, #dc2626)";
+          errEl.textContent = "⚠️ That username is already registered! Click '🔑 Log In' above to enter your password.";
+        }
+        return;
+      }
+
+      const newProfile = {
+        name: uname,
+        level: 1,
+        highestUnlockedLevel: 1,
+        gold: 100,
+        streak: 0,
+        lockedChests: 1,
+        isPremium: false,
+        customAvatar: null,
+        unlockedSkins: ["rank_default"],
+        levelBestScores: {},
+        seenHashes: [],
+        stats: {
+          "Lexicon Library": { correct: 0, total: 0, timeSum: 0 },
+          "Verbal Vault":    { correct: 0, total: 0, timeSum: 0 },
+          "Number Nexus":    { correct: 0, total: 0, timeSum: 0 },
+          "Spatial Sanctum": { correct: 0, total: 0, timeSum: 0 }
+        }
+      };
+
+      db[key] = {
+        username: uname,
+        password: encodedInputPwd,
+        profile: newProfile
+      };
+      writeAllAccounts(db);
+
+      if (errEl) errEl.textContent = "";
+      if (typeof renderQuickUserChips === "function") renderQuickUserChips();
+      loginSuccess(key, db[key].profile);
+      return;
+    }
+
+    // 2. LOG IN MODE: BLOCK UNREGISTERED USERNAMES
+    const lookupKey = key === "ireoluwa" ? "ireisthebest99" : key;
+    const accountRecord = db[lookupKey];
+
+    if (!accountRecord) {
+      if (errEl) {
+        errEl.style.color = "var(--danger, #dc2626)";
+        errEl.textContent = `❌ Username "${uname}" is not registered! Click '✨ New Pupil Sign Up' above to create an account first.`;
+      }
+      return;
+    }
+
+    // 3. LOG IN MODE: STRICT PASSWORD MATCH CHECK
+    const savedPwd = accountRecord.password || "";
+    const isPasswordCorrect = (savedPwd === encodedInputPwd) || (savedPwd === pwd);
+
+    if (!isPasswordCorrect) {
+      if (errEl) {
+        errEl.style.color = "var(--danger, #dc2626)";
+        errEl.textContent = "❌ Incorrect password! Please try again or click '🔑 Forgot or Reset Password?' below to reset it.";
+      }
+      if (pwdEl) {
+        pwdEl.value = "";
+        pwdEl.focus();
+      }
+      return;
+    }
+
+    // 4. VERIFIED: LOG PUPIL IN
+    if (errEl) errEl.textContent = "";
+    writeAllAccounts(db);
+    loginSuccess(lookupKey, accountRecord.profile);
+  }
+
+  // Lock functions on window so no earlier script can overwrite them
+  const lockAuthFn = (name, fn) => {
+    try {
+      Object.defineProperty(window, name, { value: fn, writable: false, configurable: false });
+    } catch (e) {
+      window[name] = fn;
+    }
+  };
+
+  lockAuthFn("handleAuthSubmit", strictHandleAuthSubmit);
+  lockAuthFn("makSubmitAuth", strictHandleAuthSubmit);
+  lockAuthFn("switchAuthTab", strictSwitchAuthTab);
+  lockAuthFn("setAuthMode", strictSwitchAuthTab);
+  lockAuthFn("makSetAuthMode", strictSwitchAuthTab);
+  lockAuthFn("fillQuickUser", strictFillQuickUser);
+
+  // Sync initial accounts on load
+  window.addEventListener("DOMContentLoaded", () => {
+    writeAllAccounts(readAllAccounts());
+    if (typeof renderQuickUserChips === "function") renderQuickUserChips();
+  });
+})();
+</script>
+<!-- FLOATING SUPPORT & FAQ WIDGET BUTTONS -->
+<div id="helpFloatingWidget" style="position:fixed; bottom:20px; right:20px; z-index:9998; display:flex; gap:10px; align-items:center;">
+  <button type="button" onclick="openFaqModal()" style="background:#fff; color:#ea580c; border:2px solid #ea580c; padding:10px 16px; border-radius:99px; font-weight:800; font-size:0.88rem; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,0.15);">
+    ❓ FAQ
+  </button>
+  <button type="button" onclick="openComplaintModal()" style="background:linear-gradient(135deg, #f97316, #dc2626); color:#fff; border:none; padding:10px 18px; border-radius:99px; font-weight:800; font-size:0.88rem; cursor:pointer; box-shadow:0 4px 14px rgba(234,88,12,0.35);">
+    ⚠️ Report Payment / Access Issue
+  </button>
+</div>
+
+<!-- FAQ MODAL -->
+<div id="faqModal" class="modal-backdrop hidden" style="z-index: 100010;">
+  <div class="modal-card" style="max-width:720px; text-align: left;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+      <h2 style="color:var(--primary, #ea580c); font-size: 1.4rem;">❓ Frequently Asked Questions (FAQ)</h2>
+      <button type="button" onclick="closeFaqModal()" class="modal-close">✕ Close</button>
+    </div>
+    
+    <div style="display:flex; flex-direction:column; gap:12px; font-size:0.92rem; color:#44403c; line-height:1.5; max-height: 65vh; overflow-y: auto; padding-right: 4px;">
+      <div style="background:#fff7ed; padding:12px; border-radius:12px; border:1px solid #fed7aa;">
+        <strong>Q: Are Levels 1 through 3 free?</strong><br/>
+        A: Yes! Levels 1, 2, and 3 across all subjects (Maths, English, Verbal Reasoning, and Non-Verbal Reasoning) are completely free with zero restrictions.
+      </div>
+      <div style="background:#fff7ed; padding:12px; border-radius:12px; border:1px solid #fed7aa;">
+        <strong>Q: What does the Lifetime Pass include?</strong><br/>
+        A: A single Lifetime Pass permanently unlocks all 500 levels, 12,500+ unique 11+ practice questions, step-by-step explanations, and live classmate duels.
+      </div>
+      <div style="background:#fff7ed; padding:12px; border-radius:12px; border:1px solid #fed7aa;">
+        <strong>Q: I made a payment on Stripe, but my levels are still locked. What should I do?</strong><br/>
+        A: When Stripe redirects you back, your account should unlock automatically. If it doesn't open immediately, click the paywall button on any locked level and click the green <strong>"✅ Already Paid? Unlock"</strong> button, or use the <em>Report Payment / Access Issue</em> button in the bottom corner to notify us instantly!
+      </div>
+      <div style="background:#fff7ed; padding:12px; border-radius:12px; border:1px solid #fed7aa;">
+        <strong>Q: How do I recover my password if I forget it?</strong><br/>
+        A: Click the <strong>"🔑 Forgot or Reset Password?"</strong> button on the login screen, enter your pupil username, and set your new password instantly.
+      </div>
+      <div style="background:#fff7ed; padding:12px; border-radius:12px; border:1px solid #fed7aa;">
+        <strong>Q: What happens if a student scores 50% or lower on a level trial?</strong><br/>
+        A: To maintain high 11+ exam standards, scoring 50% or lower (12/25 or less) demotes the pupil down one level so they can reinforce core concepts using our revision library.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- COMPLAINTS & PAYMENT ISSUE REPORTING FORM MODAL -->
+<div id="complaintModal" class="modal-backdrop hidden" style="z-index: 100010;">
+  <div class="modal-card" style="max-width:540px; text-align: left;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+      <h2 style="color:var(--accent, #dc2626); font-size: 1.3rem;">⚠️ Report Payment or Access Issue</h2>
+      <button type="button" onclick="closeComplaintModal()" class="modal-close">✕ Close</button>
+    </div>
+    <p style="color:var(--text-muted, #78716c); font-size:0.88rem; margin-bottom:14px; line-height: 1.4;">
+      Experiencing payment loops, redirect delays, or level locks after purchasing? Fill out this quick form. It will immediately open your email client to send your ticket directly to <strong>support@makguide.co.uk</strong>.
+    </p>
+
+    <div style="display:flex; flex-direction:column; gap:12px;">
+      <div>
+        <label style="display:block; font-size:0.84rem; font-weight:800; margin-bottom:4px; color:#44403c;">Parent or Guardian Name</label>
+        <input type="text" id="compName" placeholder="e.g. Mr. Opeyemi" style="width:100%; padding:11px; border:2px solid #e7e5e4; border-radius:10px; font-size:0.95rem; box-sizing:border-box;" />
+      </div>
+      <div>
+        <label style="display:block; font-size:0.84rem; font-weight:800; margin-bottom:4px; color:#44403c;">Your Contact Email</label>
+        <input type="email" id="compEmail" placeholder="e.g. parent@example.com" style="width:100%; padding:11px; border:2px solid #e7e5e4; border-radius:10px; font-size:0.95rem; box-sizing:border-box;" />
+      </div>
+      <div>
+        <label style="display:block; font-size:0.84rem; font-weight:800; margin-bottom:4px; color:#44403c;">Pupil Username (if applicable)</label>
+        <input type="text" id="compUsername" placeholder="e.g. anitjee or ireisthebest99" style="width:100%; padding:11px; border:2px solid #e7e5e4; border-radius:10px; font-size:0.95rem; box-sizing:border-box;" />
+      </div>
+      <div>
+        <label style="display:block; font-size:0.84rem; font-weight:800; margin-bottom:4px; color:#44403c;">Issue Category</label>
+        <select id="compCategory" style="width:100%; padding:11px; border:2px solid #e7e5e4; border-radius:10px; font-size:0.95rem; background:#fff; font-family:inherit;">
+          <option value="Paid on Stripe but levels still locked">💳 Paid on Stripe but levels still locked</option>
+          <option value="Redirect loop after payment">🔄 Redirect loop after payment</option>
+          <option value="Login or Password Reset Issue">🔑 Login or Password Reset Issue</option>
+          <option value="General Support or Feedback">💬 General Support or Feedback</option>
+        </select>
+      </div>
+      <div>
+        <label style="display:block; font-size:0.84rem; font-weight:800; margin-bottom:4px; color:#44403c;">Describe the Issue / Transaction Details</label>
+        <textarea id="compMessage" rows="3" placeholder="Please describe what happened (e.g. 'Paid via Stripe as anitjee, returned to site, but Level 10 is still locked')..." style="width:100%; padding:11px; border:2px solid #e7e5e4; border-radius:10px; font-size:0.95rem; font-family:inherit; box-sizing:border-box;"></textarea>
+      </div>
+      <button type="button" class="btn-play" onclick="submitComplaintForm()" style="background:var(--grad, linear-gradient(135deg, #f97316, #dc2626)); font-weight:800; margin-top:4px;">
+        ✉️ Send Complaint / Support Ticket
+      </button>
+    </div>
+  </div>
+</div>
 
 <script>
 /* =====================================================================
@@ -8072,9 +8374,3 @@ window.selectAndStartLevel = function(lvl) {
   };
 })();
 </script>
-<!-- FLOATING HELP, FAQ & COMPLAINT WIDGET -->
-<div id="helpFloatingWidget" style="position:fixed; bottom:20px; right:20px; z-index:9998; display:flex; gap:10px; align-items:center;">
-  <button onclick="openFaqModal()" style="background:#fff; color:#ea580c; border:2px solid #ea580c; padding:10px 16px; border-radius:99px; font-weight:800; font-size:0.88rem; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,0.15);">
-    ❓ FAQ
-  </button>
-  <button onclick="openComplaintModal()" style="background:linear-gradient(135deg, #f97316, #dc2626); color:#fff; border:none; padding:10px 18px; border-radius:99px; font-weight:800; font-size:0.88rem; cursor:pointer; box-shadow:0 4px
