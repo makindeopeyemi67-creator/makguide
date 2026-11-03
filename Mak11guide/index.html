@@ -9104,18 +9104,26 @@ window.selectAndStartLevel = function(lvl) {
     </div>
   </div>
 </div>
+</script>
 <script>
 /* =====================================================================
-   STRIPE WEBHOOK + 3 FREE LEVELS + STRICT AUTH CONTROLLER
+   CLOUDFLARE CROSS-DEVICE LOGIN + STRIPE WEBHOOK + 3 FREE LEVELS
+   - Pupils can sign up once and log in on ANY device (phone, tablet, PC)
+   - Syncs passwords, levels, gold, and Stripe payment status to Cloudflare KV
+   - Strictly locks Levels 4–500 on F5 refresh unless confirmed paid
    ===================================================================== */
 (function() {
-  // PASTE YOUR CLOUDFLARE WORKER URL BELOW (without a trailing slash):
-  const WEBHOOK_API_BASE = "https://makguide-stripe-webhook.YOUR-SUBDOMAIN.workers.dev";
-
-  const FREE_LEVEL_LIMIT = 3; // Levels 1–3 Free; Levels 4–500 Locked
+  const WEBHOOK_API_BASE = "https://makinde-stripe-webhook.makindeopeyemi67.workers.dev";
+  const FREE_LEVEL_LIMIT = 3; // Levels 1–3 Free; Levels 4–500 Locked until Stripe Webhook confirms
   const STRIPE_PAYMENT_URL = "https://buy.stripe.com/9B6bJ35VD0PsfBS20LdAk00";
   const IRE_USERS = ["ireisthebest99", "ireoluwa"];
-  const PAID_LIST_KEY = "MAKGUIDE_VERIFIED_PAID_USERS_V1";
+  const WEBHOOK_CACHE_KEY = "MAKGUIDE_CF_WEBHOOK_PAID_V2";
+  const CLEAN_DB_KEY = "MAKGUIDE_CLEAN_ACCOUNTS_DB_V2";
+
+  localStorage.removeItem("MAKGUIDE_VERIFIED_PAID_USERS_V1");
+  localStorage.removeItem("MAKGUIDE_PENDING_PAID_USER");
+  localStorage.removeItem("MAKGUIDE_PENDING_STRIPE_USER");
+  localStorage.removeItem("MAKGUIDE_STRIPE_SUCCESS_LATCH");
 
   const IRE_STATS = {
     "Lexicon Library": { correct: 95, total: 100, timeSum: 1200 },
@@ -9124,64 +9132,55 @@ window.selectAndStartLevel = function(lvl) {
     "Spatial Sanctum": { correct: 85, total: 93,  timeSum: 1100 }
   };
 
-  function getVerifiedPaidUsers() {
+  function getWebhookConfirmedUsers() {
     try {
-      const arr = JSON.parse(localStorage.getItem(PAID_LIST_KEY) || "[]");
+      const arr = JSON.parse(localStorage.getItem(WEBHOOK_CACHE_KEY) || "[]");
       return Array.from(new Set(arr.map(u => String(u).toLowerCase().trim())));
     } catch (e) {
       return [];
     }
   }
 
-  function verifyAndSavePaidUser(uname) {
+  function setWebhookConfirmedUser(uname, isPaid) {
     const clean = String(uname || "").toLowerCase().trim();
     if (!clean || clean === "scholar") return;
-
-    const list = getVerifiedPaidUsers();
-    if (!list.includes(clean)) list.push(clean);
-    try { localStorage.setItem(PAID_LIST_KEY, JSON.stringify(list)); } catch (e) {}
-
-    ["Makguide_ACCOUNTS_DB_V3", "MAK11GUIDE_ACCOUNTS_DB_V3"].forEach(storageKey => {
-      try {
-        const db = JSON.parse(localStorage.getItem(storageKey) || "{}");
-        if (db[clean] && db[clean].profile) {
-          db[clean].profile.isPremium = true;
-          localStorage.setItem(storageKey, JSON.stringify(db));
-        }
-      } catch (e) {}
-    });
-
-    if (hero && getActiveUsername() === clean) {
-      hero.isPremium = true;
-      if (typeof saveCurrentPupilProfile === "function") saveCurrentPupilProfile();
+    let list = getWebhookConfirmedUsers();
+    if (isPaid) {
+      if (!list.includes(clean)) list.push(clean);
+    } else {
+      list = list.filter(u => u !== clean);
     }
+    try { localStorage.setItem(WEBHOOK_CACHE_KEY, JSON.stringify(list)); } catch (e) {}
   }
 
-  // Ask Cloudflare Webhook KV if this pupil has paid on Stripe
-  async function syncPaidStatusFromWebhook(uname) {
-    const clean = String(uname || getActiveUsername()).toLowerCase().trim();
-    if (!clean || isIreAccount(clean) || WEBHOOK_API_BASE.includes("YOUR-SUBDOMAIN")) return;
+  function getActiveUsername() {
+    return String(
+      localStorage.getItem("Makguide_ACTIVE_USER_V3") ||
+      localStorage.getItem("MAK11GUIDE_ACTIVE_USER_V3") ||
+      currentUsername ||
+      window.currentUsername ||
+      ""
+    ).toLowerCase().trim();
+  }
 
-    try {
-      const res = await fetch(`${WEBHOOK_API_BASE}/check?user=${encodeURIComponent(clean)}`, { cache: "no-store" });
-      if (!res.ok) return;
-      const data = await res.json();
-      if (data && data.paid === true) {
-        const alreadyUnlocked = hasFullLevelAccess(clean);
-        verifyAndSavePaidUser(clean);
-        if (!alreadyUnlocked) {
-          window.forceRender3FreeLevels();
-          alert(`🎉 Stripe Payment Verified! All 500 levels are now permanently unlocked for "${clean}".`);
-        }
-      }
-    } catch (e) {}
+  function isIreAccount(unameKey) {
+    const k = String(unameKey || getActiveUsername()).toLowerCase().trim();
+    return IRE_USERS.includes(k);
+  }
+
+  function hasFullLevelAccess(unameKey) {
+    const k = String(unameKey || getActiveUsername()).toLowerCase().trim();
+    if (!k) return false;
+    if (isIreAccount(k)) return true;
+    return getWebhookConfirmedUsers().includes(k);
   }
 
   function readAllAccounts() {
-    let dbMain = {}, dbAlt = {};
-    try { dbMain = JSON.parse(localStorage.getItem("Makguide_ACCOUNTS_DB_V3") || "{}"); } catch (e) {}
-    try { dbAlt  = JSON.parse(localStorage.getItem("MAK11GUIDE_ACCOUNTS_DB_V3") || "{}"); } catch (e) {}
-    const merged = Object.assign({}, dbAlt, dbMain);
+    let dbClean = {}, dbMain = {}, dbAlt = {};
+    try { dbClean = JSON.parse(localStorage.getItem(CLEAN_DB_KEY) || "{}"); } catch (e) {}
+    try { dbMain  = JSON.parse(localStorage.getItem("Makguide_ACCOUNTS_DB_V3") || "{}"); } catch (e) {}
+    try { dbAlt   = JSON.parse(localStorage.getItem("MAK11GUIDE_ACCOUNTS_DB_V3") || "{}"); } catch (e) {}
+    const merged = Object.assign({}, dbAlt, dbMain, dbClean);
 
     if (!merged["ireisthebest99"]) {
       merged["ireisthebest99"] = {
@@ -9201,49 +9200,97 @@ window.selectAndStartLevel = function(lvl) {
         p.name = "Ireoluwa";
         p.isPremium = true;
         if (!p.level || p.level < 72 || p.level >= 500) p.level = 72;
-        if (!p.highestUnlockedLevel || p.highestUnlockedLevel < 72 || p.highestUnlockedLevel >= 500) p.highestUnlockedLevel = p.level;
+        if (!p.highestUnlockedLevel || p.highestUnlockedLevel < 72 || p.highestUnlockedLevel >= 500) {
+          p.highestUnlockedLevel = p.level;
+        }
       }
     }
+
+    Object.keys(merged).forEach(k => {
+      const cleanK = k.toLowerCase().trim();
+      if (!IRE_USERS.includes(cleanK) && merged[k] && merged[k].profile) {
+        const p = merged[k].profile;
+        const paid = hasFullLevelAccess(cleanK);
+        p.isPremium = paid;
+        if (p.level === 72 && (!p.seenHashes || p.seenHashes.length === 0 || p.seenHashes.length === 393)) {
+          p.level = 1;
+          p.highestUnlockedLevel = 1;
+          p.gold = 100;
+          p.streak = 0;
+          p.seenHashes = [];
+        }
+        if (!paid) {
+          if (p.highestUnlockedLevel > FREE_LEVEL_LIMIT) p.highestUnlockedLevel = FREE_LEVEL_LIMIT;
+          if (p.level > FREE_LEVEL_LIMIT) p.level = FREE_LEVEL_LIMIT;
+        }
+      }
+    });
+
     return merged;
   }
 
   function writeAllAccounts(db) {
     try {
-      localStorage.setItem("Makguide_ACCOUNTS_DB_V3", JSON.stringify(db));
-      localStorage.setItem("MAK11GUIDE_ACCOUNTS_DB_V3", JSON.stringify(db));
+      const raw = JSON.stringify(db);
+      localStorage.setItem(CLEAN_DB_KEY, raw);
+      localStorage.setItem("Makguide_ACCOUNTS_DB_V3", raw);
+      localStorage.setItem("MAK11GUIDE_ACCOUNTS_DB_V3", raw);
     } catch (e) {}
   }
 
-  function getActiveUsername() {
-    return String(
-      currentUsername ||
-      window.currentUsername ||
-      localStorage.getItem("Makguide_ACTIVE_USER_V3") ||
-      localStorage.getItem("MAK11GUIDE_ACTIVE_USER_V3") ||
-      (hero && hero.name) ||
-      ""
-    ).toLowerCase().trim();
-  }
-
-  function isIreAccount(unameKey) {
-    const k = String(unameKey || getActiveUsername()).toLowerCase().trim();
-    return IRE_USERS.includes(k);
-  }
-
-  function hasFullLevelAccess(unameKey) {
-    const k = String(unameKey || getActiveUsername()).toLowerCase().trim();
-    if (!k) return false;
-    if (isIreAccount(k)) return true;
-    if (getVerifiedPaidUsers().includes(k)) return true;
+  // Push active pupil's latest profile & progress to Cloudflare KV so any device stays in sync
+  async function syncAccountToCloud(unameKey) {
+    const clean = String(unameKey || getActiveUsername()).toLowerCase().trim();
+    if (!clean || isIreAccount(clean)) return;
     const db = readAllAccounts();
-    if (db[k] && db[k].profile && db[k].profile.isPremium === true) {
-      verifyAndSavePaidUser(k);
-      return true;
-    }
-    return false;
+    const record = db[clean];
+    if (!record) return;
+
+    try {
+      await fetch(`${WEBHOOK_API_BASE}/account`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "save",
+          username: clean,
+          displayUsername: record.username || clean,
+          password: record.password,
+          profile: record.profile
+        })
+      });
+    } catch (e) {}
   }
 
-  // Send the pupil's username to Stripe via ?client_reference_id= so the Webhook knows who paid!
+  async function syncPaidStatusFromWebhook(uname) {
+    const clean = String(uname || getActiveUsername()).toLowerCase().trim();
+    if (!clean || isIreAccount(clean)) return;
+
+    try {
+      const res = await fetch(`${WEBHOOK_API_BASE}/check?user=${encodeURIComponent(clean)}`, { cache: "no-store" });
+      if (!res.ok) return;
+      const data = await res.json();
+      const isPaidOnServer = Boolean(data && data.paid === true);
+      const wasPaidLocally = hasFullLevelAccess(clean);
+
+      setWebhookConfirmedUser(clean, isPaidOnServer);
+
+      const db = readAllAccounts();
+      if (db[clean] && db[clean].profile) {
+        db[clean].profile.isPremium = isPaidOnServer;
+        writeAllAccounts(db);
+      }
+
+      if (isPaidOnServer && !wasPaidLocally) {
+        hero.isPremium = true;
+        window.forceRender3FreeLevels();
+        alert(`🎉 Stripe Payment Confirmed! All 500 levels are now permanently unlocked for "${clean}".`);
+      } else if (!isPaidOnServer && wasPaidLocally) {
+        hero.isPremium = false;
+        window.forceRender3FreeLevels();
+      }
+    } catch (e) {}
+  }
+
   window.launchStripeForActivePupil = function(e) {
     if (e && e.preventDefault) e.preventDefault();
     const active = getActiveUsername();
@@ -9290,8 +9337,13 @@ window.selectAndStartLevel = function(lvl) {
       const active = getActiveUsername();
       if (!active) return;
 
+      const db = readAllAccounts();
       const fullAccess = hasFullLevelAccess(active);
       const ireLogged = isIreAccount(active);
+
+      if (db[active] && db[active].profile) {
+        Object.assign(hero, db[active].profile);
+      }
 
       if (ireLogged) {
         hero.name = "Ireoluwa";
@@ -9304,11 +9356,18 @@ window.selectAndStartLevel = function(lvl) {
           hero.stats = JSON.parse(JSON.stringify(IRE_STATS));
         }
       } else if (fullAccess) {
+        hero.name = (db[active] && db[active].username) || hero.name || active;
         hero.isPremium = true;
       } else {
+        hero.name = (db[active] && db[active].username) || hero.name || active;
         hero.isPremium = false;
         if (hero.highestUnlockedLevel > FREE_LEVEL_LIMIT) hero.highestUnlockedLevel = FREE_LEVEL_LIMIT;
         if (hero.level > FREE_LEVEL_LIMIT) hero.level = FREE_LEVEL_LIMIT;
+      }
+
+      if (db[active]) {
+        db[active].profile = Object.assign({}, hero);
+        writeAllAccounts(db);
       }
 
       const info = getLevelInfo(hero.level || 1);
@@ -9406,7 +9465,12 @@ window.selectAndStartLevel = function(lvl) {
                 openPaywallModalSecure();
               } else {
                 hero.level = lvlObj.level;
-                saveCurrentPupilProfile();
+                const latestDb = readAllAccounts();
+                if (latestDb[active]) {
+                  latestDb[active].profile = Object.assign({}, hero);
+                  writeAllAccounts(latestDb);
+                }
+                syncAccountToCloud(active);
                 window.forceRender3FreeLevels();
                 session.mode = "level_trial";
                 session.level = lvlObj.level;
@@ -9445,29 +9509,6 @@ window.selectAndStartLevel = function(lvl) {
     window.hero = hero;
     mapRound = null;
 
-    if (isIreAccount(cleanKey)) {
-      hero.name = "Ireoluwa";
-      hero.isPremium = true;
-      if (!hero.level || hero.level < 72 || hero.level >= 500) hero.level = 72;
-      if (!hero.highestUnlockedLevel || hero.highestUnlockedLevel < 72 || hero.highestUnlockedLevel >= 500) {
-        hero.highestUnlockedLevel = hero.level;
-      }
-    } else if (hasFullLevelAccess(cleanKey)) {
-      hero.isPremium = true;
-    } else {
-      hero.isPremium = false;
-      if (hero.level === 72 && (!hero.seenHashes || hero.seenHashes.length === 0)) {
-        hero.level = 1;
-        hero.highestUnlockedLevel = 1;
-        hero.gold = 100;
-        hero.streak = 0;
-      }
-      if (hero.highestUnlockedLevel > FREE_LEVEL_LIMIT) hero.highestUnlockedLevel = FREE_LEVEL_LIMIT;
-      if (hero.level > FREE_LEVEL_LIMIT) hero.level = FREE_LEVEL_LIMIT;
-    }
-
-    saveCurrentPupilProfile();
-
     const logoutBanner = document.getElementById("logoutSuccessBanner");
     if (logoutBanner) logoutBanner.classList.add("hidden");
     document.getElementById("authScreen").classList.add("hidden");
@@ -9476,9 +9517,11 @@ window.selectAndStartLevel = function(lvl) {
 
     window.forceRender3FreeLevels();
     syncPaidStatusFromWebhook(cleanKey);
+    syncAccountToCloud(cleanKey);
   }
 
-  function handleWindowLevelAuth(e) {
+  // Cross-Device Login & Registration Handler (Talks to Cloudflare KV + Local Fallback)
+  async function handleWindowLevelAuth(e) {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
@@ -9531,6 +9574,31 @@ window.selectAndStartLevel = function(lvl) {
         }
       };
 
+      // Register in Cloudflare KV so the pupil can log in from any device
+      try {
+        const res = await fetch(`${WEBHOOK_API_BASE}/account`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "register",
+            username: key,
+            displayUsername: uname,
+            password: encodedInputPwd,
+            profile: newProfile
+          })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (!data.ok && data.error === "EXISTS") {
+            if (errEl) {
+              errEl.style.color = "var(--danger, #dc2626)";
+              errEl.textContent = "⚠️ That username is already registered on another device! Click '🔑 Log In' above.";
+            }
+            return;
+          }
+        }
+      } catch (err) {}
+
       db[key] = { username: uname, password: encodedInputPwd, profile: newProfile };
       writeAllAccounts(db);
       if (errEl) errEl.textContent = "";
@@ -9538,9 +9606,57 @@ window.selectAndStartLevel = function(lvl) {
       return;
     }
 
+    // LOG IN MODE
     const lookupKey = key === "ireoluwa" ? "ireisthebest99" : key;
-    const accountRecord = db[lookupKey];
 
+    // 1. Check Cloudflare KV first so accounts created on ANY device work immediately
+    if (!IRE_USERS.includes(lookupKey)) {
+      try {
+        const res = await fetch(`${WEBHOOK_API_BASE}/account`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "login",
+            username: lookupKey,
+            password: encodedInputPwd
+          })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.ok && data.account) {
+            setWebhookConfirmedUser(lookupKey, Boolean(data.account.paid));
+            db[lookupKey] = {
+              username: data.account.username || uname,
+              password: data.account.password || encodedInputPwd,
+              profile: data.account.profile
+            };
+            writeAllAccounts(db);
+            if (errEl) errEl.textContent = "";
+            executeLoginSecure(lookupKey, db[lookupKey].profile);
+            return;
+          } else if (data.error === "WRONG_PASSWORD") {
+            if (errEl) {
+              errEl.style.color = "var(--danger, #dc2626)";
+              errEl.textContent = "❌ Incorrect password! Click '🔑 Forgot or Reset Password?' below to reset it.";
+            }
+            if (pwdEl) { pwdEl.value = ""; pwdEl.focus(); }
+            return;
+          } else if (data.error === "NOT_FOUND" && db[lookupKey]) {
+            // Account exists locally from before Cloud upgrade — verify locally & push to cloud
+            const localRec = db[lookupKey];
+            if (localRec.password === encodedInputPwd || localRec.password === pwd) {
+              syncAccountToCloud(lookupKey);
+              if (errEl) errEl.textContent = "";
+              executeLoginSecure(lookupKey, localRec.profile);
+              return;
+            }
+          }
+        }
+      } catch (err) {}
+    }
+
+    // 2. Fallback to local DB (for Ireoluwa or offline mode)
+    const accountRecord = db[lookupKey];
     if (!accountRecord) {
       if (errEl) {
         errEl.style.color = "var(--danger, #dc2626)";
@@ -9565,6 +9681,64 @@ window.selectAndStartLevel = function(lvl) {
     if (errEl) errEl.textContent = "";
     executeLoginSecure(lookupKey, accountRecord.profile);
   }
+
+  // Upgrade Password Reset so it also updates Cloudflare KV across all devices
+  window.confirmInstantPasswordReset = async function() {
+    const uname = (document.getElementById("resetUnameInput").value || "").trim();
+    const newPwd = (document.getElementById("resetNewPwdInput").value || "").trim();
+    const confirmPwd = (document.getElementById("resetConfirmPwdInput").value || "").trim();
+    const fb = document.getElementById("resetPwdFeedback");
+
+    if (uname.length < 3 || newPwd.length < 3) {
+      fb.style.color = "var(--danger, #dc2626)";
+      fb.textContent = "⚠️ Username and new password must be at least 3 characters.";
+      return;
+    }
+    if (newPwd !== confirmPwd) {
+      fb.style.color = "var(--danger, #dc2626)";
+      fb.textContent = "⚠️ Passwords do not match.";
+      return;
+    }
+
+    const key = uname.toLowerCase();
+    const encodedPwd = btoa(newPwd);
+    const db = readAllAccounts();
+
+    try {
+      const res = await fetch(`${WEBHOOK_API_BASE}/account`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "reset_password",
+          username: key,
+          newPassword: encodedPwd
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.ok && data.account) {
+          db[key] = data.account;
+          writeAllAccounts(db);
+        }
+      }
+    } catch (e) {}
+
+    if (!db[key]) {
+      fb.style.color = "var(--danger, #dc2626)";
+      fb.textContent = `❌ No account found for "${uname}". Click 'New Pupil Sign Up' to create one!`;
+      return;
+    }
+
+    db[key].password = encodedPwd;
+    writeAllAccounts(db);
+
+    fb.style.color = "var(--success, #16a34a)";
+    fb.textContent = "✅ Password updated across all devices! Logging you in...";
+    setTimeout(() => {
+      window.closeResetPasswordModal();
+      executeLoginSecure(key, db[key].profile);
+    }, 400);
+  };
 
   window.addEventListener("click", function(e) {
     const btn = e.target && e.target.closest("button, a");
@@ -9602,7 +9776,11 @@ window.selectAndStartLevel = function(lvl) {
       if (!active) return;
       const subTxt = subEl ? (subEl.textContent || "") : "";
       const gridHtml = grid ? (grid.innerHTML || "") : "";
-      if (subTxt.includes("1–9") || subTxt.includes("Unlocked: Level") || (!hasFullLevelAccess(active) && gridHtml.includes("Pass Lvl 3 (90%)"))) {
+      if (
+        subTxt.includes("1–9") ||
+        subTxt.includes("Unlocked: Level") ||
+        (!hasFullLevelAccess(active) && (subTxt.includes("All 500 Levels Unlocked") || gridHtml.includes("Play Level 4") || gridHtml.includes("Pass Lvl 3 (90%)")))
+      ) {
         window.forceRender3FreeLevels();
       }
     });
@@ -9610,20 +9788,20 @@ window.selectAndStartLevel = function(lvl) {
     if (subEl) obs.observe(subEl, { childList: true, characterData: true, subtree: true });
   }
 
-  window.addEventListener("DOMContentLoaded", () => {
+  function bootAndVerify() {
     writeAllAccounts(readAllAccounts());
     installDomGuards();
-    if (getActiveUsername()) {
+    const active = getActiveUsername();
+    if (active) {
       window.forceRender3FreeLevels();
-      syncPaidStatusFromWebhook(getActiveUsername());
+      syncPaidStatusFromWebhook(active);
+      setTimeout(() => syncPaidStatusFromWebhook(active), 2000);
+      setTimeout(() => syncPaidStatusFromWebhook(active), 5000);
     }
-  });
-  window.addEventListener("load", () => {
-    installDomGuards();
-    if (getActiveUsername()) {
-      window.forceRender3FreeLevels();
-      syncPaidStatusFromWebhook(getActiveUsername());
-    }
-  });
+  }
+
+  window.addEventListener("DOMContentLoaded", bootAndVerify);
+  window.addEventListener("load", bootAndVerify);
+  setTimeout(bootAndVerify, 150);
 })();
 </script>
